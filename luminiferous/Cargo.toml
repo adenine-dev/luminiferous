@@ -4,5 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["use-compiled-tools"]
+use-installed-tools = ["spirv-builder/use-installed-tools"]
+use-compiled-tools = ["spirv-builder/use-compiled-tools"]
 
 [dependencies]
+image = "0.24"
+shaderc = "0.8"
+wgpu = { version = "0.15", features = ["spirv"] }
+pollster = "0.2"
+futures-intrusive = "0.5"
+bytemuck = { version = "1.13.0", features = ["derive"] }
+shared = { path = "./shared" }
+
+[build-dependencies]
+spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu", default-features = false }
