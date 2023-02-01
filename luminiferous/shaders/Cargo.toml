@@ -9,7 +9,5 @@ edition = "2021"
 crate-type = ["dylib"]
 
 [dependencies]
-spirv-std = { git = "https://github.com/EmbarkStudios/rust-gpu", features = [
-    "glam",
-] }
+spirv-std = { git = "https://github.com/EmbarkStudios/rust-gpu" }
 shared = { path = "../shared" }

@@ -1,11 +1,12 @@
 #![cfg_attr(target_arch = "spirv", no_std)]
 
-use spirv_std::{
-    glam::{vec2, vec4, Vec2, Vec4},
-    spirv,
-};
+use spirv_std::spirv;
 
-use shared::ShaderConstants;
+use shared::{
+    glam::*,
+    integrators::{Integrator, SimpleIntegrator},
+    ShaderConstants,
+};
 
 #[spirv(fragment)]
 pub fn fs_main(
@@ -13,11 +14,8 @@ pub fn fs_main(
     #[spirv(push_constant)] constants: &ShaderConstants,
     output: &mut Vec4,
 ) {
-    let frag_coord = vec2(in_frag_coord.x, in_frag_coord.y);
-    let mut uv = (frag_coord - 0.5 * vec2(constants.width as f32, constants.height as f32))
-        / constants.height as f32;
-    uv.y = -uv.y;
-    *output = vec4(uv.x, uv.y, 0.0, 1.0);
+    let integrator = SimpleIntegrator {};
+    *output = integrator.render_fragment(in_frag_coord.xy().as_ivec2());
 }
 
 #[spirv(vertex)]

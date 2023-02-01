@@ -20,3 +20,6 @@ shared = { path = "./shared" }
 
 [build-dependencies]
 spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu", default-features = false }
+
+[dev-dependencies]
+tempdir = "0.3.7"
