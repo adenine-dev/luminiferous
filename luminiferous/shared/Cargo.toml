@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 bytemuck = { version = "1.13.0", features = ["derive"] }
 glam = { version = "0.22.0", default-features = false, features = ["libm"] }
+libm = "0.2.6"

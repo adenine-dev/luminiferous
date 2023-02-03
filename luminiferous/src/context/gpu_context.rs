@@ -1,14 +1,25 @@
-use std::{mem::size_of, num::NonZeroU32};
+use std::{
+    mem::{self, size_of},
+    num::NonZeroU32,
+};
 
 use bytemuck;
-use wgpu::{PushConstantRange, ShaderStages};
+use wgpu::{util::DeviceExt, PushConstantRange, ShaderStages};
 
-use shared::ShaderConstants;
+use shared::{
+    glam::*,
+    integrators::{Integrator, SimpleIntegrator},
+    ShaderConstants,
+};
 
 use super::{Context, RenderOutput, RenderResult};
 use crate::Config;
 
 const SHADER: &[u8] = include_bytes!(env!("shaders.spv"));
+
+unsafe fn to_u8_slice<T: Sized>(p: &T) -> &[u8] {
+    core::slice::from_raw_parts((p as *const T) as *const u8, core::mem::size_of::<T>())
+}
 
 pub struct GpuContext {
     config: Config,
@@ -89,10 +100,25 @@ impl Context for GpuContext {
                 source: wgpu::util::make_spirv(SHADER),
             });
 
+            let integrator_bind_group_layout =
+                device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: None,
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        count: None,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                            ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        },
+                    }],
+                });
+
             let render_pipeline_layout =
                 device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Render Pipeline Layout"),
-                    bind_group_layouts: &[],
+                    bind_group_layouts: &[&integrator_bind_group_layout],
                     push_constant_ranges: &[PushConstantRange {
                         stages: ShaderStages::FRAGMENT,
                         range: 0..size_of::<ShaderConstants>() as u32,
@@ -134,6 +160,27 @@ impl Context for GpuContext {
                 multiview: None,
             });
 
+            let integrator = Integrator::simple_integrator(vec2(
+                self.config.width as f32,
+                self.config.height as f32,
+            ));
+
+            dbg!(unsafe { to_u8_slice(&integrator).len() });
+            let integrator_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Integrator Buffer"),
+                contents: unsafe { to_u8_slice(&integrator) },
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            });
+
+            let integrator_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &integrator_bind_group_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: integrator_buffer.as_entire_binding(),
+                }],
+            });
+
             let mut encoder =
                 device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
@@ -163,6 +210,7 @@ impl Context for GpuContext {
                 };
 
                 render_pass.set_pipeline(&render_pipeline);
+                render_pass.set_bind_group(0, &integrator_bind_group, &[]);
                 render_pass.set_push_constants(
                     ShaderStages::FRAGMENT,
                     0,

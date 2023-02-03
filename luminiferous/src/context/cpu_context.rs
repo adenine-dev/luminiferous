@@ -1,6 +1,6 @@
 use shared::{
     glam::*,
-    integrators::{Integrator, SimpleIntegrator},
+    integrators::{Integrate, SimpleIntegrator},
 };
 
 use super::{Context, RenderResult};
@@ -21,7 +21,8 @@ impl Context for CpuContext {
         let mut buffer =
             Vec::with_capacity(self.config.width as usize * self.config.height as usize);
 
-        let integrator = SimpleIntegrator {};
+        let integrator =
+            SimpleIntegrator::new(vec2(self.config.width as f32, self.config.height as f32));
 
         for y in 0..self.config.height {
             for x in 0..self.config.width {

@@ -10,5 +10,10 @@ pub struct ShaderConstants {
 }
 
 pub use glam;
+pub use libm;
+
+mod math;
+pub use math::*;
 
 pub mod integrators;
+pub mod shapes;
