@@ -17,10 +17,10 @@ pub fn fs_main(
     #[spirv(storage_buffer, descriptor_set = 0, binding = 0)] integrator: &Integrator,
     output: &mut Vec4,
 ) {
-    // let e = E::X(32);
+    // let e = E::X(1);
     // *output = match e {
-    //     E::X(i) => vec4(i as f32, 0.0, 0.0, 1.0),
-    //     E::Y(u) => vec4(u as f32, 0.0, 0.0, 1.0),
+    //     E::X(i) => vec4(i as f32, 1.0, 0.0, 1.0),
+    //     E::Y(u) => vec4(u as f32, 0.0, 1.0, 1.0),
     // }
 
     *output = integrator.render_fragment(in_frag_coord.xy().as_ivec2());

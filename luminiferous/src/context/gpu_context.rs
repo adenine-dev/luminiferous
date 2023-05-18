@@ -110,7 +110,7 @@ impl Context for GpuContext {
                         ty: wgpu::BindingType::Buffer {
                             has_dynamic_offset: false,
                             min_binding_size: None,
-                            ty: wgpu::BufferBindingType::Storage { read_only: false },
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
                         },
                     }],
                 });
@@ -165,7 +165,7 @@ impl Context for GpuContext {
                 self.config.height as f32,
             ));
 
-            dbg!(unsafe { to_u8_slice(&integrator).len() });
+            // dbg!(unsafe { to_u8_slice(&integrator).len() });
             let integrator_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Integrator Buffer"),
                 contents: unsafe { to_u8_slice(&integrator) },
