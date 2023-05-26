@@ -1,2 +1,5 @@
 [workspace]
 members = ["aether", "luminiferous"]
+
+[profile.dev.package."*"]
+opt-level = 3

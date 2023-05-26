@@ -9,6 +9,9 @@ pub type Point3 = Vec3;
 pub type Vector2 = Vec2;
 pub type Vector3 = Vec3;
 
+pub type Normal2 = Vec2;
+pub type Normal3 = Vec3;
+
 pub type Extent2 = Vec2;
 pub type Extent3 = Vec3;
 
@@ -29,3 +32,5 @@ pub type UVector3 = UVec3;
 
 pub type UExtent2 = UVec2;
 pub type UExtent3 = UVec3;
+
+pub type Matrix4 = Mat4;

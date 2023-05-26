@@ -1,4 +1,4 @@
-use crate::Color;
+use crate::maths::Color;
 
 use super::SpectrumT;
 

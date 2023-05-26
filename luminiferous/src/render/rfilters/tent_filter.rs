@@ -1,4 +1,4 @@
-use crate::Vector2;
+use crate::maths::Vector2;
 
 use super::RFilterT;
 

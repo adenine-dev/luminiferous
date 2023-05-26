@@ -2,8 +2,8 @@ use std::path::Path;
 
 use crate::{
     core::Array2d,
+    maths::{Color, Point2, UBounds2, UExtent2, UVector2, Vector2},
     rfilters::{RFilter, RFilterT},
-    Color, Point2, UBounds2, UExtent2, UVector2, Vector2,
 };
 
 #[derive(Debug, Clone, Copy, Default)]

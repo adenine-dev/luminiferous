@@ -1,10 +1,5 @@
-mod result;
-pub use result::*;
-
-mod maths;
-pub use maths::*;
-
 pub mod core;
+pub mod maths;
 
 mod render;
 pub use render::*;
