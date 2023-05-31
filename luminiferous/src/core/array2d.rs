@@ -109,7 +109,7 @@ mod test {
     fn as_1d() {
         let mut a = Array2d::with_default(UExtent2::new(3, 4), 42);
 
-        a.as_1d_mut().into_iter().for_each(|x| *x += 1);
+        a.as_1d_mut().iter_mut().for_each(|x| *x += 1);
         assert_eq!(a[1][1], 43);
         assert_eq!(a[2][0], 43);
         assert_eq!(a[1][2], 43);

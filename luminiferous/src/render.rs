@@ -1,4 +1,8 @@
+pub mod aggregates;
+pub mod bsdfs;
+pub mod emitters;
 pub mod film;
+pub mod materials;
 pub mod primitive;
 pub mod rfilters;
 pub mod sensors;

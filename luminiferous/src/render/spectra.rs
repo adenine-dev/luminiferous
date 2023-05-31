@@ -1,8 +1,39 @@
+use core::ops::*;
+use enum_dispatch::enum_dispatch;
+
 mod rgb_spectrum;
 pub use rgb_spectrum::*;
 
-pub trait SpectrumT {}
+#[enum_dispatch]
+pub trait SpectrumT:
+    Sized
+    // + Default
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Mul<Self, Output = Self>
+    + Div<Self, Output = Self>
+    + AddAssign<Self>
+    + SubAssign<Self>
+    + MulAssign<Self>
+    + DivAssign<Self>
+    + Mul<f32, Output = Self>
+    + Div<f32, Output = Self>
+    + MulAssign<f32>
+    + DivAssign<f32>
+{
+    fn zero() -> Self;
+    
+    fn is_black(&self) -> bool;
 
-pub enum Spectrum {
-    RGB(RGBSpectrum),
+    fn to_rgb(&self) -> [f32; 3];
+
+    fn to_xyz(&self) -> [f32; 3];
 }
+
+pub type Spectrum = RgbSpectrum;
+
+// #[derive(Debug, Clone)]
+// #[enum_dispatch(SpectrumT)]
+// pub enum Spectrum {
+//     Rgb(RgbSpectrum),
+// }

@@ -2,7 +2,7 @@ mod sphere;
 use enum_dispatch::enum_dispatch;
 pub use sphere::*;
 
-use crate::maths::{Normal3, Point3, Ray, Vector3};
+use crate::maths::{Normal3, Point3, Ray};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ShapeIntersection {

@@ -1,10 +1,12 @@
 use crate::{
+    materials::Material,
     maths::{Point3, Ray, Vector3},
     shapes::{Shape, ShapeIntersection, ShapeT},
 };
 
 pub struct Primitive {
     pub shape: Shape,
+    pub material: Material,
 }
 
 pub struct Intersection<'a> {
@@ -20,8 +22,8 @@ pub struct SurfaceInteraction<'a> {
 }
 
 impl<'a> Primitive {
-    pub fn new(shape: Shape) -> Self {
-        Self { shape }
+    pub fn new(shape: Shape, material: Material) -> Self {
+        Self { shape, material }
     }
 
     pub fn intersect(&'a self, ray: Ray) -> Option<Intersection<'a>> {
