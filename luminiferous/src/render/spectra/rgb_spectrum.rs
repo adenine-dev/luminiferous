@@ -14,13 +14,11 @@ pub struct RgbSpectrum {
     c: [f32; 3],
 }
 
-impl RgbSpectrum {
-    pub fn new(r: f32, g: f32, b: f32) -> Self {
+impl SpectrumT for RgbSpectrum {
+    fn from_rgb(r: f32, g: f32, b: f32) -> Self {
         Self { c: [r, g, b] }
     }
-}
 
-impl SpectrumT for RgbSpectrum {
     fn zero() -> Self {
         Self { c: [0.0, 0.0, 0.0] }
     }

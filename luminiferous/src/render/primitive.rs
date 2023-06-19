@@ -1,6 +1,6 @@
 use crate::{
     materials::Material,
-    maths::{Point3, Ray, Vector3},
+    maths::{Normal3, Point2, Point3, Ray},
     shapes::{Shape, ShapeIntersection, ShapeT},
 };
 
@@ -18,7 +18,8 @@ pub struct SurfaceInteraction<'a> {
     pub primitive: &'a Primitive,
     pub t: f32,
     pub p: Point3,
-    pub n: Vector3,
+    pub n: Normal3,
+    pub uv: Point2,
 }
 
 impl<'a> Primitive {
@@ -51,6 +52,7 @@ impl<'a> Intersection<'a> {
             t: self.shape_intersection.t,
             p: shape_interaction.p,
             n: shape_interaction.n,
+            uv: shape_interaction.uv,
         }
     }
 }

@@ -14,6 +14,7 @@ use crate::maths::*;
 /// assert_eq!(a[1][0], 3);
 /// assert_eq!(a[1][1], 4);
 /// ```
+#[derive(Debug)]
 pub struct Array2d<T> {
     extent: UExtent2,
     data: Vec<T>,

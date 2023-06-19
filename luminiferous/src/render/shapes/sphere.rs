@@ -1,4 +1,4 @@
-use crate::maths::{Point3, Ray};
+use crate::maths::{Point2, Point3, Ray};
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 
@@ -37,6 +37,15 @@ impl ShapeT for Sphere {
     ) -> ShapeInteraction {
         let p = ray.at(intersection.t);
         let n = (p - self.origin).normalize();
-        ShapeInteraction { p, intersection, n }
+
+        let u = n.x.atan2(n.z) / (core::f32::consts::PI * 2.0) + 0.5;
+        let v = n.y * 0.5 + 0.5;
+
+        ShapeInteraction {
+            p,
+            intersection,
+            n,
+            uv: Point2::new(u, v),
+        }
     }
 }

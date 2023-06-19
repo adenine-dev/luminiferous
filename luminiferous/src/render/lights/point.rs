@@ -1,10 +1,10 @@
 use crate::{
-    maths::{random_in_hemisphere, Point3, Vector3, Ray},
+    maths::{Point2, Point3, Ray, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
 };
 
-use super::{EmitterSample, EmitterT, Visibility};
+use super::{LightSample, LightT, Visibility};
 
 pub struct PointLight {
     p: Point3,
@@ -17,7 +17,7 @@ impl PointLight {
     }
 }
 
-impl EmitterT for PointLight {
+impl LightT for PointLight {
     fn is_environment(&self) -> bool {
         false
     }
@@ -26,14 +26,14 @@ impl EmitterT for PointLight {
         self.radiance
     }
 
-    fn sample_li(&self, interaction: &SurfaceInteraction) -> EmitterSample {
+    fn sample_li(&self, interaction: &SurfaceInteraction, _u: Point2) -> LightSample {
         let wi = (self.p - interaction.p).normalize();
 
-        EmitterSample {
+        LightSample {
             wi,
             li: self.l_e(wi),
             visibility: Visibility {
-                ray: Ray::new(interaction.p, wi),
+                ray: Ray::new(interaction.p + interaction.n * 1.0e-6, wi),
                 end: self.p,
             },
         }

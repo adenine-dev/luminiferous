@@ -1,18 +1,37 @@
-use std::path::Path;
+use std::{
+    path::Path,
+    sync::atomic::{AtomicU32, Ordering},
+};
+
+use atomic_float::AtomicF32;
 
 use crate::{
     core::Array2d,
-    maths::{Point2, UBounds2, UExtent2, UVector2, Vector2},
+    maths::{Extent2, Point2, UBounds2, UExtent2, UVector2, Vector2},
     rfilters::{RFilter, RFilterT},
     spectra::{Spectrum, SpectrumT},
 };
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Default)]
 struct Pixel {
-    pub filter_weight_sum: f32,
-    pub contribution_sum_xyz: [f32; 3],
+    pub filter_weight_sum: AtomicF32,
+    pub contribution_sum_xyz: [AtomicF32; 3],
 }
 
+impl Clone for Pixel {
+    fn clone(&self) -> Self {
+        Pixel {
+            filter_weight_sum: AtomicF32::new(self.filter_weight_sum.load(Ordering::SeqCst)),
+            contribution_sum_xyz: [
+                AtomicF32::new(self.contribution_sum_xyz[0].load(Ordering::SeqCst)),
+                AtomicF32::new(self.contribution_sum_xyz[1].load(Ordering::SeqCst)),
+                AtomicF32::new(self.contribution_sum_xyz[2].load(Ordering::SeqCst)),
+            ],
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Film {
     pixels: Array2d<Pixel>,
     filter: RFilter,
@@ -24,6 +43,10 @@ impl Film {
             pixels: Array2d::with_default(extent, Pixel::default()),
             filter: filter.into(),
         }
+    }
+
+    pub fn get_extent(&self) -> UExtent2 {
+        self.pixels.get_extent()
     }
 
     fn get_sample_bounds(&self, p: Point2) -> UBounds2 {
@@ -40,7 +63,7 @@ impl Film {
         UBounds2::new(min, max)
     }
 
-    pub fn apply_sample(&mut self, p: Point2, sample: Spectrum) {
+    pub fn apply_sample(&self, p: Point2, sample: Spectrum) {
         let bounds = self.get_sample_bounds(p);
 
         for i in bounds.min.y..bounds.max.y {
@@ -51,10 +74,16 @@ impl Film {
                 if weight >= 0.0 {
                     let [x, y, z] = sample.to_rgb();
 
-                    self.pixels[i as usize][j as usize].filter_weight_sum += weight;
-                    self.pixels[i as usize][j as usize].contribution_sum_xyz[0] += x * weight;
-                    self.pixels[i as usize][j as usize].contribution_sum_xyz[1] += y * weight;
-                    self.pixels[i as usize][j as usize].contribution_sum_xyz[2] += z * weight;
+                    // All of these are relaxed because they aren't read until the end.
+                    self.pixels[i as usize][j as usize]
+                        .filter_weight_sum
+                        .fetch_add(weight, Ordering::Relaxed);
+                    self.pixels[i as usize][j as usize].contribution_sum_xyz[0]
+                        .fetch_add(x * weight, Ordering::Relaxed);
+                    self.pixels[i as usize][j as usize].contribution_sum_xyz[1]
+                        .fetch_add(y * weight, Ordering::Relaxed);
+                    self.pixels[i as usize][j as usize].contribution_sum_xyz[2]
+                        .fetch_add(z * weight, Ordering::Relaxed);
                 }
             }
         }
@@ -71,11 +100,12 @@ impl Film {
             self.pixels.get_extent().x as usize,
             self.pixels.get_extent().y as usize,
             |x, y| {
-                let p = self.pixels[y][x];
+                let p = &self.pixels[y][x];
+                let filter_weight_sum = p.filter_weight_sum.load(Ordering::Acquire);
                 (
-                    p.contribution_sum_xyz[0] * (1.0 / p.filter_weight_sum),
-                    p.contribution_sum_xyz[1] * (1.0 / p.filter_weight_sum),
-                    p.contribution_sum_xyz[2] * (1.0 / p.filter_weight_sum),
+                    p.contribution_sum_xyz[0].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
+                    p.contribution_sum_xyz[1].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
+                    p.contribution_sum_xyz[2].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
                 )
             },
         )

@@ -1,4 +1,8 @@
-use crate::{maths::Vector3, primitive::SurfaceInteraction, spectra::Spectrum};
+use crate::{
+    maths::{Point2, Vector3},
+    primitive::SurfaceInteraction,
+    spectra::Spectrum,
+};
 
 mod lambertian;
 use enum_dispatch::enum_dispatch;
@@ -12,9 +16,9 @@ pub struct BsdfSample {
 
 #[enum_dispatch]
 pub trait BsdfT {
-    fn sample(&self, wi: Vector3, interaction: &SurfaceInteraction) -> BsdfSample;
+    fn sample(&self, wi: Vector3, si: &SurfaceInteraction, u: Point2) -> BsdfSample;
 
-    fn eval(&self, wi: Vector3, wo: Vector3) -> Spectrum;
+    fn eval(&self, si: &SurfaceInteraction, wi: Vector3, wo: Vector3) -> Spectrum;
 }
 
 #[enum_dispatch(BsdfT)]

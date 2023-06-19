@@ -21,6 +21,8 @@ pub trait SpectrumT:
     + MulAssign<f32>
     + DivAssign<f32>
 {
+    fn from_rgb(r:f32, g: f32, b: f32) -> Self;
+    
     fn zero() -> Self;
     
     fn is_black(&self) -> bool;
