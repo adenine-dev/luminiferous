@@ -2,6 +2,7 @@ use crate::{
     maths::{Point2, Point3, Ray, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
+    stats::STATS,
 };
 
 use super::{LightSample, LightT, Visibility};
@@ -13,6 +14,8 @@ pub struct PointLight {
 
 impl PointLight {
     pub fn new(p: Point3, radiance: Spectrum) -> Self {
+        STATS.lights_created.inc();
+
         Self { p, radiance }
     }
 }

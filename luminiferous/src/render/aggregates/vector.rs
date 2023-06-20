@@ -1,6 +1,9 @@
+use std::mem::size_of;
+
 use crate::{
     maths::Ray,
     primitive::{Primitive, SurfaceInteraction},
+    stats::STATS,
 };
 
 use super::AggregateT;
@@ -11,6 +14,9 @@ pub struct Vector {
 
 impl Vector {
     pub fn new(primitives: Vec<Primitive>) -> Self {
+        STATS
+            .primitive_memory
+            .add((primitives.len() * size_of::<Primitive>()) as u64);
         Vector { primitives }
     }
 }

@@ -1,6 +1,8 @@
-use crate::{maths::Vector2, primitive::SurfaceInteraction, spectra::Spectrum};
+use std::mem::size_of;
 
-use super::{TextureMapping, TextureT};
+use crate::{maths::Vector2, primitive::SurfaceInteraction, spectra::Spectrum, stats::STATS};
+
+use super::{Texture, TextureMapping, TextureT};
 
 pub struct CheckerboardTexture {
     a: Spectrum,
@@ -10,6 +12,9 @@ pub struct CheckerboardTexture {
 
 impl CheckerboardTexture {
     pub fn new(a: Spectrum, b: Spectrum, to_uv: TextureMapping) -> Self {
+        STATS.textures_created.inc();
+        STATS.texture_memory.add(size_of::<Texture>() as u64);
+
         Self { a, b, to_uv }
     }
 }

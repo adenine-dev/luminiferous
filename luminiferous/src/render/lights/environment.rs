@@ -2,6 +2,7 @@ use crate::{
     maths::{warp, Frame3, Point2, Ray, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
+    stats::STATS,
 };
 
 use super::{LightSample, LightT, Visibility};
@@ -12,6 +13,8 @@ pub struct Environment {
 
 impl Environment {
     pub fn new(radiance: Spectrum) -> Self {
+        STATS.lights_created.inc();
+
         Self { radiance }
     }
 }

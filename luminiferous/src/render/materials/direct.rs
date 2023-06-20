@@ -3,6 +3,7 @@ use crate::{
     maths::{Frame3, Point2, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
+    stats::STATS,
 };
 
 use super::MaterialT;
@@ -13,6 +14,8 @@ pub struct DirectMaterial {
 
 impl DirectMaterial {
     pub fn new(bsdf: Bsdf) -> Self {
+        STATS.materials_created.inc();
+
         Self { bsdf }
     }
 }

@@ -1,4 +1,7 @@
-use crate::maths::{Point2, Point3, Ray};
+use crate::{
+    maths::{Point2, Point3, Ray},
+    stats::STATS,
+};
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 
@@ -9,6 +12,8 @@ pub struct Sphere {
 
 impl Sphere {
     pub fn new(origin: Point3, radius: f32) -> Self {
+        STATS.shapes_created.inc();
+
         Self { origin, radius }
     }
 }

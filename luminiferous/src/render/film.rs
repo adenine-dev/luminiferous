@@ -1,4 +1,5 @@
 use std::{
+    mem::size_of,
     path::Path,
     sync::atomic::{AtomicU32, Ordering},
 };
@@ -10,6 +11,7 @@ use crate::{
     maths::{Extent2, Point2, UBounds2, UExtent2, UVector2, Vector2},
     rfilters::{RFilter, RFilterT},
     spectra::{Spectrum, SpectrumT},
+    stats::STATS,
 };
 
 #[derive(Debug, Default)]
@@ -39,6 +41,10 @@ pub struct Film {
 
 impl Film {
     pub fn new(extent: UExtent2, filter: impl Into<RFilter>) -> Self {
+        STATS
+            .film_memory
+            .add(extent.x as u64 * extent.y as u64 * size_of::<Pixel>() as u64);
+
         Self {
             pixels: Array2d::with_default(extent, Pixel::default()),
             filter: filter.into(),

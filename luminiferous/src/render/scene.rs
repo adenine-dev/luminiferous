@@ -2,6 +2,9 @@ use crate::{
     aggregates::{Aggregate, AggregateT},
     cameras::Camera,
     lights::{Light, Visibility},
+    maths::Ray,
+    primitive::SurfaceInteraction,
+    stats::STATS,
 };
 
 pub struct Scene {
@@ -20,12 +23,20 @@ impl Scene {
     }
 
     pub fn test_visibility(&self, visibility: Visibility) -> bool {
-        // TODO: lights
+        STATS.shadow_intersection_tests.inc();
+
         if let Some(intersection) = self.aggregate.intersect(visibility.ray) {
             if intersection.t < visibility.end.distance(visibility.ray.o) {
                 return false;
             }
         }
         true
+    }
+
+    pub fn intersect(&self, ray: Ray) -> Option<SurfaceInteraction> {
+        // TODO: lights
+        STATS.regular_intersection_tests.inc();
+
+        self.aggregate.intersect(ray)
     }
 }

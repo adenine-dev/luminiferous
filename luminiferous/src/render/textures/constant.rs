@@ -1,6 +1,8 @@
-use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
+use std::mem::size_of;
 
-use super::TextureT;
+use crate::{primitive::SurfaceInteraction, spectra::Spectrum, stats::STATS};
+
+use super::{Texture, TextureT};
 
 pub struct ConstantTexture {
     value: Spectrum,
@@ -8,6 +10,9 @@ pub struct ConstantTexture {
 
 impl ConstantTexture {
     pub fn new(value: Spectrum) -> Self {
+        STATS.textures_created.inc();
+        STATS.texture_memory.add(size_of::<Texture>() as u64);
+
         Self { value }
     }
 }

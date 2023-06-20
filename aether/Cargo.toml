@@ -7,5 +7,3 @@ edition = "2021"
 
 [dependencies]
 luminiferous = { path = "../luminiferous" }
-rand = "0.8.5"
-rayon = "1.7.0"
