@@ -1,10 +1,11 @@
 use crate::{
-    maths::{Point2, Point3, Ray},
+    maths::{Bounds3, Point2, Point3, Ray, Vector3},
     stats::STATS,
 };
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 
+#[derive(Clone)]
 pub struct Sphere {
     origin: Point3,
     radius: f32,
@@ -52,5 +53,12 @@ impl ShapeT for Sphere {
             n,
             uv: Point2::new(u, v),
         }
+    }
+
+    fn make_bounds(&self) -> Bounds3 {
+        Bounds3::new(
+            self.origin - Vector3::splat(self.radius),
+            self.origin + Vector3::splat(self.radius),
+        )
     }
 }

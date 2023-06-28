@@ -3,8 +3,8 @@ use crate::{
     maths::{Point2, Ray},
 };
 
-mod projective;
-pub use projective::*;
+mod perspective;
+pub use perspective::*;
 
 use enum_dispatch::enum_dispatch;
 
@@ -25,5 +25,5 @@ pub trait CameraT {
 #[enum_dispatch(CameraT)]
 #[derive(Debug)]
 pub enum Camera {
-    Projective(ProjectiveCamera),
+    Projective(PerspectiveCamera),
 }

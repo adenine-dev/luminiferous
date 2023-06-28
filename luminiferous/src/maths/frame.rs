@@ -1,6 +1,6 @@
 use super::{Normal3, Vector3};
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Frame3 {
     pub n: Normal3,
     pub s: Vector3,

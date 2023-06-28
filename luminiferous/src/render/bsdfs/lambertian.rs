@@ -6,8 +6,9 @@ use crate::{
     textures::{Texture, TextureT},
 };
 
-use super::{BsdfSample, BsdfT};
+use super::{BsdfFlags, BsdfSample, BsdfT};
 
+#[derive(Clone)]
 pub struct Lambertian {
     reflectance: Texture,
 }
@@ -32,5 +33,9 @@ impl BsdfT for Lambertian {
 
     fn eval(&self, si: &SurfaceInteraction, _wi: Vector3, _wo: Vector3) -> Spectrum {
         self.reflectance.eval(si) * core::f32::consts::FRAC_1_PI
+    }
+
+    fn flags(&self) -> BsdfFlags {
+        BsdfFlags::DiffuseReflection
     }
 }

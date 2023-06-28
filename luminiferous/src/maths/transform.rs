@@ -1,6 +1,6 @@
 use crate::maths::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Transform3 {
     matrix: Matrix4,
     inverse_t: Matrix4,
@@ -39,6 +39,7 @@ impl Transform3 {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Transform2 {
     matrix: Matrix3,
 }

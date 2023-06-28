@@ -1,9 +1,15 @@
 use std::mem::size_of;
 
-use crate::{maths::Vector2, primitive::SurfaceInteraction, spectra::Spectrum, stats::STATS};
+use crate::{
+    maths::{Point2, Vector2},
+    primitive::SurfaceInteraction,
+    spectra::Spectrum,
+    stats::STATS,
+};
 
 use super::{Texture, TextureMapping, TextureT};
 
+#[derive(Clone)]
 pub struct CheckerboardTexture {
     a: Spectrum,
     b: Spectrum,
@@ -21,7 +27,11 @@ impl CheckerboardTexture {
 
 impl TextureT for CheckerboardTexture {
     fn eval(&self, si: &SurfaceInteraction) -> Spectrum {
-        let st = self.to_uv.map(si.uv);
+        self.eval_uv(si.uv)
+    }
+
+    fn eval_uv(&self, uv: Point2) -> Spectrum {
+        let st = self.to_uv.map(uv);
         let mask = st - st.floor();
         if (mask.x > 0.5) == (mask.y > 0.5) {
             self.a

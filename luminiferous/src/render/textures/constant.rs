@@ -1,9 +1,10 @@
 use std::mem::size_of;
 
-use crate::{primitive::SurfaceInteraction, spectra::Spectrum, stats::STATS};
+use crate::{maths::Point2, primitive::SurfaceInteraction, spectra::Spectrum, stats::STATS};
 
 use super::{Texture, TextureT};
 
+#[derive(Clone)]
 pub struct ConstantTexture {
     value: Spectrum,
 }
@@ -19,6 +20,10 @@ impl ConstantTexture {
 
 impl TextureT for ConstantTexture {
     fn eval(&self, _si: &SurfaceInteraction) -> Spectrum {
+        self.value
+    }
+
+    fn eval_uv(&self, uv: Point2) -> Spectrum {
         self.value
     }
 }

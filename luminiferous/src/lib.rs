@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![feature(iter_partition_in_place)]
 
 pub mod core;
 pub mod maths;

@@ -14,7 +14,7 @@ use crate::maths::*;
 /// assert_eq!(a[1][0], 3);
 /// assert_eq!(a[1][1], 4);
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Array2d<T> {
     extent: UExtent2,
     data: Vec<T>,
@@ -58,8 +58,7 @@ impl<T> Array2d<T> {
     /// ```
     pub fn from_1d(extent: UExtent2, mut data: Vec<T>) -> Self {
         assert!(data.len() >= (extent.x * extent.y) as usize);
-        dbg!(data.len());
-        dbg!(extent.x * extent.y);
+
         data.truncate((extent.x * extent.y) as usize);
         Self { extent, data }
     }

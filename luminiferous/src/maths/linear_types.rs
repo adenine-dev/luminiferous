@@ -36,3 +36,18 @@ pub type UExtent3 = UVec3;
 pub type Matrix4 = Mat4;
 
 pub type Matrix3 = Mat3;
+
+// TODO: rewrite all this to be custom and just put these on the impl
+pub fn permute_v3(v: Vector3, x: usize, y: usize, z: usize) -> Vector3 {
+    Vector3::new(v[x], v[y], v[z])
+}
+
+pub fn max_dimension_v3(v: Vector3) -> usize {
+    if v.x > v.y && v.x > v.z {
+        0
+    } else if v.y > v.z {
+        1
+    } else {
+        2
+    }
+}

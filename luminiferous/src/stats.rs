@@ -114,6 +114,7 @@ pub struct Statistics {
     pub texture_memory: StatCounter,
     pub film_memory: StatCounter,
     pub primitive_memory: StatCounter,
+    pub aggregate_memory: StatCounter,
 }
 
 impl Statistics {
@@ -138,6 +139,7 @@ impl Statistics {
             texture_memory: StatCounter::new(),
             film_memory: StatCounter::new(),
             primitive_memory: StatCounter::new(),
+            aggregate_memory: StatCounter::new(),
         }
     }
 
@@ -164,13 +166,15 @@ impl Statistics {
         println!("    shadow intersection tests:  {}", self.shadow_intersection_tests.get());
         println!("    average path length:        {:.2} ({}-{})", self.path_length.get_avg(), self.path_length.get_min(), self.path_length.get_max());
 
-        println!("  Memory:");
+        println!("  memory:");
         let total_memory = (self.texture_memory.get()
             + self.film_memory.get()
-            + self.primitive_memory.get()) as f32;
+            + self.primitive_memory.get() + self.aggregate_memory.get()) as f32;
         println!("    textures:   {} ({:.2}%)", self.texture_memory.get_as_bytes(), self.texture_memory.get() as f32 / total_memory * 100.0);
         println!("    film:       {} ({:.2}%)", self.film_memory.get_as_bytes(), self.film_memory.get() as f32 / total_memory * 100.0);
         println!("    primitives: {} ({:.2}%)", self.primitive_memory.get_as_bytes(), self.primitive_memory.get() as f32 / total_memory * 100.0);
+        println!("    aggregates: {} ({:.2}%)", self.aggregate_memory.get_as_bytes(), self.aggregate_memory.get() as f32 / total_memory * 100.0);
+
     }
 }
 

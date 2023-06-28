@@ -1,12 +1,13 @@
 use crate::{
     materials::Material,
-    maths::{Normal3, Point2, Point3, Ray},
+    maths::{Bounds3, Normal3, Point2, Point3, Ray},
     shapes::{Shape, ShapeIntersection, ShapeT},
 };
 
+#[derive(Clone)]
 pub struct Primitive {
     pub shape: Shape,
-    pub material: Material,
+    pub material_index: usize,
 }
 
 pub struct Intersection<'a> {
@@ -23,8 +24,11 @@ pub struct SurfaceInteraction<'a> {
 }
 
 impl<'a> Primitive {
-    pub fn new(shape: Shape, material: Material) -> Self {
-        Self { shape, material }
+    pub fn new(shape: Shape, material_index: usize) -> Self {
+        Self {
+            shape,
+            material_index,
+        }
     }
 
     pub fn intersect(&'a self, ray: Ray) -> Option<Intersection<'a>> {
@@ -37,6 +41,10 @@ impl<'a> Primitive {
         } else {
             None
         }
+    }
+
+    pub fn make_bounds(&self) -> Bounds3 {
+        self.shape.make_bounds()
     }
 }
 

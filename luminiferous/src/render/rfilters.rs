@@ -20,7 +20,7 @@ pub trait RFilterT {
 }
 
 #[enum_dispatch(RFilterT)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RFilter {
     Box(BoxFilter),
     Tent(TentFilter),

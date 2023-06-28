@@ -1,3 +1,5 @@
+use enum_dispatch::enum_dispatch;
+
 mod constant;
 pub use constant::*;
 
@@ -7,7 +9,8 @@ pub use checkerboard::*;
 mod uv;
 pub use uv::*;
 
-use enum_dispatch::enum_dispatch;
+mod image;
+pub use image::*;
 
 use crate::{
     maths::{Matrix3, Point2, Transform2},
@@ -18,15 +21,20 @@ use crate::{
 #[enum_dispatch]
 pub trait TextureT {
     fn eval(&self, si: &SurfaceInteraction) -> Spectrum;
+
+    fn eval_uv(&self, uv: Point2) -> Spectrum;
 }
 
 #[enum_dispatch(TextureT)]
+#[derive(Clone)]
 pub enum Texture {
     Constant(ConstantTexture),
     Checkerboard(CheckerboardTexture),
     Uv(UvTexture),
+    Image(ImageTexture),
 }
 
+#[derive(Clone, Copy)]
 pub struct TextureMapping {
     pub transform: Transform2,
 }

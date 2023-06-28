@@ -11,7 +11,7 @@ impl ProgressBar {
         let bar = indicatif::ProgressBar::new(len);
         bar.set_style(
             indicatif::ProgressStyle::with_template(
-                "{msg} {spinner} [{elapsed}|{eta}] {bar:60.magenta/blue}",
+                "{msg} {spinner} [{elapsed}|{eta}] {bar:60.magenta/blue} ({percent}%)",
             )
             .unwrap()
             .progress_chars("═❆❆—")

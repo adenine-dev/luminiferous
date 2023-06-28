@@ -2,7 +2,7 @@ use crate::maths::Vector2;
 
 use super::RFilterT;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TentFilter {
     radius: Vector2,
 }

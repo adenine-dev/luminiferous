@@ -1,9 +1,13 @@
-mod sphere;
 use enum_dispatch::enum_dispatch;
+
+mod sphere;
 pub use sphere::*;
 
+mod triangle;
+pub use triangle::*;
+
 use crate::{
-    maths::{Normal3, Point2, Point3, Ray},
+    maths::{Bounds3, Normal3, Point2, Point3, Ray},
     stats::StatCounter,
 };
 
@@ -28,9 +32,13 @@ pub trait ShapeT {
         ray: Ray,
         intersection: ShapeIntersection,
     ) -> ShapeInteraction;
+
+    fn make_bounds(&self) -> Bounds3;
 }
 
 #[enum_dispatch(ShapeT)]
+#[derive(Clone)]
 pub enum Shape {
     Sphere(Sphere),
+    Triangle(Triangle),
 }

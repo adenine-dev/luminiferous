@@ -1,5 +1,5 @@
-mod whitted;
-pub use whitted::*;
+mod path;
+pub use path::*;
 
 use enum_dispatch::enum_dispatch;
 
@@ -12,5 +12,5 @@ pub trait IntegratorT {
 
 #[enum_dispatch(IntegratorT)]
 pub enum Integrator {
-    Whitted(WhittedIntegrator),
+    Path(PathIntegrator),
 }
