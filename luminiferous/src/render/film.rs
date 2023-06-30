@@ -1,15 +1,16 @@
-use core::panic;
 use std::{
     mem::size_of,
+    ops::Range,
     path::Path,
     sync::{atomic::Ordering, Mutex},
 };
 
 use atomic_float::AtomicF32;
+use rayon::{iter::plumbing::*, prelude::*};
 
 use crate::{
     core::{Array2d, TevReporter},
-    maths::{Bounds3, Extent2, Point2, UBounds2, UExtent2, UPoint2, UVector2, Vector2},
+    maths::{Point2, UBounds2, UExtent2, UPoint2, UVector2, Vector2},
     rfilters::{RFilter, RFilterT},
     spectra::{Spectrum, SpectrumT},
     stats::STATS,
@@ -19,6 +20,17 @@ use crate::{
 struct Pixel {
     pub filter_weight_sum: AtomicF32,
     pub contribution_sum_xyz: [AtomicF32; 3],
+}
+
+impl Pixel {
+    fn xyz(&self) -> (f32, f32, f32) {
+        let filter_weight_sum = self.filter_weight_sum.load(Ordering::Acquire);
+        (
+            self.contribution_sum_xyz[0].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
+            self.contribution_sum_xyz[1].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
+            self.contribution_sum_xyz[2].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
+        )
+    }
 }
 
 impl Clone for Pixel {
@@ -48,9 +60,7 @@ impl Film {
             .film_memory
             .add(extent.x as u64 * extent.y as u64 * size_of::<Pixel>() as u64);
 
-        let mut tev_reporter = TevReporter::new(false);
-
-        tev_reporter.create_image(extent);
+        let tev_reporter = TevReporter::new(false, extent);
 
         Self {
             pixels: Array2d::with_default(extent, Pixel::default()),
@@ -109,8 +119,6 @@ impl Film {
 
     pub fn apply_tile(&self, tile: FilmTile) {
         let bounds = tile.border_bounds;
-        // bounds.min += tile.border_size;
-        // bounds.max -= tile.border_size;
 
         for i in bounds.min.y..bounds.max.y {
             for j in bounds.min.x..bounds.max.x {
@@ -141,40 +149,29 @@ impl Film {
                     .fetch_add(z, Ordering::Release);
             }
         }
+
+        self.report_tile(tile.bounds);
     }
 
-    pub fn update(&self, p: Point2) {
-        // if self.tev_reporter.lock().is_ok_and(|r| r.is_connected()) {
-        //     let bounds = self.get_sample_bounds(p);
-        //     let mut pixels = Vec::with_capacity(
-        //         ((bounds.max.y - bounds.min.y) * (bounds.max.x - bounds.min.x)) as usize * 3,
-        //     );
+    pub fn report_tile(&self, bounds: UBounds2) {
+        if self.tev_reporter.lock().is_ok_and(|r| r.is_connected()) {
+            let mut pixels = Vec::with_capacity(
+                ((bounds.max.y - bounds.min.y) * (bounds.max.x - bounds.min.x)) as usize * 3,
+            );
 
-        //     for y in bounds.min.y..bounds.max.y {
-        //         for x in bounds.min.x..bounds.max.x {
-        //             let y = y as usize;
-        //             let x = x as usize;
-        //             let p = &self.pixels[y][x];
-        //             let filter_weight_sum = p.filter_weight_sum.load(Ordering::Acquire);
-        //             pixels.push(
-        //                 p.contribution_sum_xyz[0].load(Ordering::Acquire)
-        //                     * (1.0 / filter_weight_sum),
-        //             );
-        //             pixels.push(
-        //                 p.contribution_sum_xyz[1].load(Ordering::Acquire)
-        //                     * (1.0 / filter_weight_sum),
-        //             );
-        //             pixels.push(
-        //                 p.contribution_sum_xyz[2].load(Ordering::Acquire)
-        //                     * (1.0 / filter_weight_sum),
-        //             );
-        //         }
-        //     }
+            for y in bounds.min.y..bounds.max.y {
+                for x in bounds.min.x..bounds.max.x {
+                    let (x, y, z) = self.pixels[y as usize][x as usize].xyz();
+                    pixels.push(x);
+                    pixels.push(y);
+                    pixels.push(z);
+                }
+            }
 
-        //     if let Ok(mut r) = self.tev_reporter.lock() {
-        //         r.update_pixels(bounds, &pixels);
-        //     }
-        // }
+            if let Ok(mut r) = self.tev_reporter.lock() {
+                r.update_pixels(bounds, pixels, false);
+            }
+        }
     }
 
     /// Writes the render artifacts to the filesystem into the specified directory.
@@ -183,18 +180,23 @@ impl Film {
 
         let path = directory.join("output.exr");
 
+        if self.tev_reporter.lock().is_ok_and(|r| r.is_connected()) {
+            if let Ok(mut r) = self.tev_reporter.lock() {
+                r.update_pixels(
+                    UBounds2::new(UPoint2::splat(0), UPoint2::splat(0)),
+                    vec![],
+                    true,
+                );
+            }
+        }
+
         write_rgb_file(
             path,
             self.pixels.get_extent().x as usize,
             self.pixels.get_extent().y as usize,
             |x, y| {
                 let p = &self.pixels[y][x];
-                let filter_weight_sum = p.filter_weight_sum.load(Ordering::Acquire);
-                (
-                    p.contribution_sum_xyz[0].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
-                    p.contribution_sum_xyz[1].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
-                    p.contribution_sum_xyz[2].load(Ordering::Acquire) * (1.0 / filter_weight_sum),
-                )
+                p.xyz()
             },
         )
         .unwrap();
@@ -241,7 +243,6 @@ impl FilmTile {
     }
 
     pub fn apply_sample(&self, p: Point2, sample: Spectrum) {
-        // panic!("{p:?}");
         let p = p + self.border_size.as_vec2();
         let bounds = self.get_sample_bounds(p);
 
@@ -255,7 +256,6 @@ impl FilmTile {
                 if weight >= 0.0 {
                     let [x, y, z] = sample.to_rgb();
 
-                    // All of these are relaxed because they aren't read until the end.
                     self.pixels[i as usize][j as usize]
                         .filter_weight_sum
                         .fetch_add(weight, Ordering::Release);
@@ -268,5 +268,103 @@ impl FilmTile {
                 }
             }
         }
+    }
+}
+
+pub struct TileProvider {
+    range: Range<u32>,
+    tile_size: UExtent2,
+    extent: UExtent2,
+}
+
+impl TileProvider {
+    pub fn new(extent: UExtent2, tile_size: u32) -> Self {
+        let tile_size = UExtent2::splat(tile_size);
+
+        let num_tiles = (extent.as_vec2() / tile_size.as_vec2()).ceil().as_uvec2();
+        Self {
+            range: 0..((num_tiles.x.max(num_tiles.y) + 1).pow(2)),
+
+            tile_size,
+            extent,
+        }
+    }
+
+    #[inline]
+    fn map_n(n: u32, tile_size: UExtent2, extent: UExtent2) -> Option<UBounds2> {
+        // adapted from https://oeis.org/A174344
+        let k = |n: f32| core::f32::consts::FRAC_PI_2 * ((4.0 * n - 3.0).sqrt().floor());
+
+        let p = |x| {
+            (
+                (1..=x).map(|n: u32| k(n as f32).cos()).sum::<f32>(),
+                (1..=x).map(|n| k(n as f32).sin()).sum::<f32>() - 0.5,
+            )
+        };
+        let (x, y) = p(n);
+
+        let min = (Point2::new(x, y) * tile_size.as_vec2() + extent.as_vec2() / 2.0)
+            .round()
+            .clamp(Point2::ZERO, extent.as_vec2())
+            .as_uvec2();
+
+        // let x =
+        //     ((x * tile_size.x as f32 + (extent.x as f32 / 2.0)).round() as u32).clamp(0, extent.x);
+        // let y =
+        //     ((y * tile_size.y as f32 + (extent.y as f32 / 2.0)).round() as u32).clamp(0, extent.y);
+
+        // for typical scanlines
+        // let x = (n * tile_size.x) % extent.x;
+        // let y = (n * tile_size.x) / extent.x * tile_size.y;
+
+        // let min = UPoint2::new(x, y);
+        // let max = UPoint2::new(x + tile_size.x, y + tile_size.y).min(extent);
+        let max = (min + tile_size).min(extent);
+
+        let ret = UBounds2::new(min, max);
+
+        if ret.area() == 0 {
+            None
+        } else {
+            Some(ret)
+        }
+    }
+}
+
+impl IntoIterator for TileProvider {
+    type IntoIter = TileProviderIntoIterator;
+    type Item = UBounds2;
+
+    fn into_iter(self) -> Self::IntoIter {
+        TileProviderIntoIterator { provider: self }
+    }
+}
+
+pub struct TileProviderIntoIterator {
+    provider: TileProvider,
+}
+
+impl Iterator for TileProviderIntoIterator {
+    type Item = UBounds2;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.provider
+            .range
+            .find_map(|n| TileProvider::map_n(n, self.provider.tile_size, self.provider.extent))
+    }
+}
+
+impl ParallelIterator for TileProvider {
+    type Item = UBounds2;
+
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result
+    where
+        C: UnindexedConsumer<Self::Item>,
+    {
+        self.range
+            // .par_bridge()
+            .into_par_iter()
+            .filter_map(|n| Self::map_n(n, self.tile_size, self.extent))
+            .drive_unindexed(consumer)
     }
 }

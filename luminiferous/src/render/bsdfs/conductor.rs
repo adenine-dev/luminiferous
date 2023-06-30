@@ -1,5 +1,5 @@
 use crate::{
-    maths::{Frame3, Point2, Vector3},
+    maths::{Point2, Vector3},
     primitive::SurfaceInteraction,
     spectra::{Spectrum, SpectrumT},
     stats::STATS,

@@ -1,6 +1,6 @@
 mod array2d;
 pub use array2d::*;
 mod progress;
-pub use progress::*;
-mod tev;
-pub use tev::*;
+pub(crate) use progress::*;
+mod display_reporter;
+pub use display_reporter::*;

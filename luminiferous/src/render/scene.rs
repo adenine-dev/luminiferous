@@ -1,11 +1,11 @@
 use crate::{
-    aggregates::{self, Aggregate, AggregateT, Bvh},
+    aggregates::{Aggregate, AggregateT, Bvh},
     cameras::Camera,
     lights::{Light, Visibility},
     materials::Material,
     maths::Ray,
     primitive::{Primitive, SurfaceInteraction},
-    shapes::{Shape, Triangle},
+    shapes::Shape,
     stats::STATS,
 };
 

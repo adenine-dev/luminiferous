@@ -19,7 +19,7 @@ impl ImageTexture {
     pub fn from_path(path: &Path) -> Self {
         let image = exr::prelude::read_first_rgba_layer_from_file(
             path,
-            |resolution, x| {
+            |resolution, _| {
                 let default_pixel = [0.0, 0.0, 0.0, 0.0];
                 let empty_line = vec![default_pixel; resolution.width()];
                 let empty_image = vec![empty_line; resolution.height()];

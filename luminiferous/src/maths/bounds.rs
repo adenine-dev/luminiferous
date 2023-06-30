@@ -18,6 +18,17 @@ impl UBounds2 {
     pub fn extent(&self) -> UExtent2 {
         self.max - self.min
     }
+
+    pub fn width(&self) -> u32 {
+        self.max.x - self.min.x
+    }
+    pub fn height(&self) -> u32 {
+        self.max.y - self.min.y
+    }
+
+    pub fn union(&self, other: UBounds2) -> Self {
+        Self::new(self.min.min(other.min), self.max.max(other.max))
+    }
 }
 
 #[derive(Debug, Copy, Clone, Default)]

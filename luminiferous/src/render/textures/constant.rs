@@ -23,7 +23,7 @@ impl TextureT for ConstantTexture {
         self.value
     }
 
-    fn eval_uv(&self, uv: Point2) -> Spectrum {
+    fn eval_uv(&self, _uv: Point2) -> Spectrum {
         self.value
     }
 }

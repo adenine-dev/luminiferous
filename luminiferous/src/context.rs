@@ -1,8 +1,4 @@
-use std::{
-    path::Path,
-    thread,
-    time::{Duration, Instant},
-};
+use std::{path::Path, time::Instant};
 
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
@@ -23,10 +19,7 @@ use crate::{
     stats::STATS,
     textures::{CheckerboardTexture, ConstantTexture, Texture, TextureMapping, UvTexture},
 };
-use crate::{
-    bsdfs::Conductor, maths::Transform2, scene::SceneBuilder, shapes::Triangle,
-    textures::ImageTexture,
-};
+use crate::{bsdfs::Conductor, scene::SceneBuilder, shapes::Triangle, textures::ImageTexture};
 
 pub struct Context {
     scene: Scene,
@@ -44,23 +37,16 @@ impl Context {
         println!("initializing...");
 
         let start = Instant::now();
+        // let (width, height) = (3840, 2160);
+        // let (width, height) = (1600, 900);
+        // let (width, height) = (800, 450);
+        // let (width, height) = (512, 384);
+        let (width, height) = (320, 180);
+        // let (width, height) = (100, 62);
 
-        // let width = 3840;
-        // let height = 2160;
-        // let width = 1600;
-        // let height = 900;
-        // let width = 800;
-        // let height = 450;
-        // let width = 512;
-        // let height = 384;
-        // let width = 640;
-        // let height = 360;
-        let width = 320;
-        let height = 180;
-        // let width = 100;
-        // let height = 62;
+        // let (width, height) = (69, 420);
 
-        let scene = match 0 {
+        let scene = match 1 {
             // sphere pyramid
             0 => {
                 let mut scene_builder = SceneBuilder::new();
@@ -227,9 +213,10 @@ impl Context {
                 );
 
                 sb.light(Light::Environment(Environment::new(
-                    Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))), // Texture::Image(ImageTexture::from_path(Path::new(
-                                                                                                //     "assets/kloppenheim_07_puresky/kloppenheim_07_puresky_4k.exr",
-                                                                                                // ))),
+                    // Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
+                    Texture::Image(ImageTexture::from_path(Path::new(
+                        "assets/kloppenheim_07_puresky/kloppenheim_07_puresky_4k.exr",
+                    ))),
                 )));
                 // sb.light(Light::Point(PointLight::new(
                 //     Point3::new(100.0, 100.0, -20.0),
@@ -307,6 +294,7 @@ impl Context {
         .unwrap();
 
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
+        // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
         const MAX_BOUNCES: u32 = 10;
         let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES));

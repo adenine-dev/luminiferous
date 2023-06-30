@@ -1,13 +1,14 @@
 use std::mem::size_of;
 
 use crate::{
-    maths::{Point2, Vector3},
+    maths::Point2,
     primitive::SurfaceInteraction,
     spectra::{Spectrum, SpectrumT},
     stats::STATS,
 };
 
-use super::{Texture, TextureMapping, TextureT};
+use super::{Texture, TextureT};
+
 #[derive(Clone)]
 pub struct UvTexture {}
 

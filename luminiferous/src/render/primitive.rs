@@ -1,5 +1,4 @@
 use crate::{
-    materials::Material,
     maths::{Bounds3, Normal3, Point2, Point3, Ray},
     shapes::{Shape, ShapeIntersection, ShapeT},
 };

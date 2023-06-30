@@ -23,7 +23,7 @@ impl RandomSampler {
 }
 
 impl SamplerT for RandomSampler {
-    fn begin_pixel(&mut self, p: UPoint2) {
+    fn begin_pixel(&mut self, _p: UPoint2) {
         self.samples = 0;
     }
 
@@ -47,5 +47,9 @@ impl SamplerT for RandomSampler {
             seed: self.seed + seed,
             rng: Rand32::new(self.seed + seed),
         }
+    }
+
+    fn get_spp(&self) -> u32 {
+        self.spp
     }
 }

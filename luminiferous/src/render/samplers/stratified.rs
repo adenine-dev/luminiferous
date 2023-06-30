@@ -134,4 +134,8 @@ impl SamplerT for StratifiedSampler {
             jitter: self.jitter,
         }
     }
+
+    fn get_spp(&self) -> u32 {
+        self.spp
+    }
 }

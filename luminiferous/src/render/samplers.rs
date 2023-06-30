@@ -19,6 +19,8 @@ pub trait SamplerT {
     fn next_2d(&mut self) -> Point2;
 
     fn fork(&self, seed: u64) -> Self;
+
+    fn get_spp(&self) -> u32;
 }
 
 #[enum_dispatch(SamplerT)]

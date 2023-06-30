@@ -6,10 +6,7 @@ pub use sphere::*;
 mod triangle;
 pub use triangle::*;
 
-use crate::{
-    maths::{Bounds3, Normal3, Point2, Point3, Ray},
-    stats::StatCounter,
-};
+use crate::maths::{Bounds3, Normal3, Point2, Point3, Ray};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ShapeIntersection {

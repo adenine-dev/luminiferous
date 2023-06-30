@@ -1,6 +1,6 @@
 use crate::{
     film::Film,
-    maths::{warp, Extent2, Matrix4, Point2, Point3, Ray, Transform3, Vector3},
+    maths::{warp, Matrix4, Point2, Point3, Ray, Transform3, Vector3},
 };
 
 use super::{CameraSample, CameraT};

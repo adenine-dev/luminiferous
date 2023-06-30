@@ -41,7 +41,7 @@ struct PrimitiveInfo {
     centroid: Point3,
 }
 
-enum SplitMethod {
+pub enum SplitMethod {
     EqualCounts,
     Sah,
 }
@@ -145,12 +145,13 @@ impl Bvh {
                     if n_primitives == 2 {
                         split_by_equal_counts();
                     } else {
-                        const n_buckets: usize = 12;
-                        let mut buckets = [(0, Bounds3::default()); n_buckets];
+                        const NUM_BUCKETS: usize = 12;
+                        let mut buckets = [(0, Bounds3::default()); NUM_BUCKETS];
 
                         let get_bucket = |p: &PrimitiveInfo| {
-                            ((n_buckets as f32 * centroid_bounds.offset(p.centroid)[dim]) as usize)
-                                .min(n_buckets - 1)
+                            ((NUM_BUCKETS as f32 * centroid_bounds.offset(p.centroid)[dim])
+                                as usize)
+                                .min(NUM_BUCKETS - 1)
                         };
 
                         for i in start..end {
@@ -161,8 +162,8 @@ impl Bvh {
 
                         // dbg!(buckets);
 
-                        let mut costs = [0.0; n_buckets - 1];
-                        for i in 0..n_buckets - 1 {
+                        let mut costs = [0.0; NUM_BUCKETS - 1];
+                        for i in 0..NUM_BUCKETS - 1 {
                             let mut b0 = Bounds3::default();
                             let mut b1 = Bounds3::default();
                             let mut c0 = 0;
@@ -173,7 +174,7 @@ impl Bvh {
                                 c0 += c;
                             }
 
-                            for (c, b) in buckets.iter().take(n_buckets).skip(i + 1) {
+                            for (c, b) in buckets.iter().take(NUM_BUCKETS).skip(i + 1) {
                                 b1 = b1.union(*b);
                                 c1 += c;
                             }
@@ -185,7 +186,7 @@ impl Bvh {
                         let mut min_cost = costs[0];
                         let mut min_idx = 0;
 
-                        for i in 1..n_buckets - 1 {
+                        for i in 1..NUM_BUCKETS - 1 {
                             if costs[i] < min_cost {
                                 min_cost = costs[i];
                                 min_idx = i;
@@ -203,7 +204,7 @@ impl Bvh {
                                     .iter_mut()
                                     .partition_in_place(|p| {
                                         let b = get_bucket(p);
-                                        assert!(b < n_buckets);
+                                        assert!(b < NUM_BUCKETS);
                                         b <= min_idx
                                     });
                         } else {
@@ -337,7 +338,7 @@ impl Bvh {
                 }
                 BvhNodeType::Interior(interior) => {
                     for c in interior.children {
-                        let (i, u) = self.intersect_node(c, ray, t_max, n);
+                        let (i, _u) = self.intersect_node(c, ray, t_max, n);
                         if let Some(i) = i {
                             if i.shape_intersection.t < t_max {
                                 t_max = i.shape_intersection.t;

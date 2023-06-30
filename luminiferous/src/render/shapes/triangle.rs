@@ -1,5 +1,5 @@
 use crate::{
-    maths::{max_dimension_v3, permute_v3, Bounds3, Normal3, Point2, Point3, Ray},
+    maths::{max_dimension_v3, permute_v3, Bounds3, Point2, Point3, Ray},
     stats::STATS,
 };
 
@@ -95,7 +95,7 @@ impl ShapeT for Triangle {
         let mut p2t = permute_v3(c_t, kx, ky, kz);
         let s_x = -d.x / d.z;
         let s_y = -d.y / d.z;
-        let s_z = d.z.recip();
+
         p0t.x += s_x * p0t.z;
         p0t.y += s_y * p0t.z;
         p1t.x += s_x * p1t.z;

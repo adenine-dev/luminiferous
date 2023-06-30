@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use crate::{
     maths::Ray,
-    primitive::{Intersection, Primitive, SurfaceInteraction},
+    primitive::{Intersection, Primitive},
     stats::STATS,
 };
 
