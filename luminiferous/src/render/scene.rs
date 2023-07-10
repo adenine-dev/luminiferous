@@ -4,6 +4,7 @@ use crate::{
     lights::{Light, Visibility},
     materials::Material,
     maths::{Ray, Transform3},
+    media::MediumInterface,
     primitive::{Primitive, SurfaceInteraction},
     shapes::Shape,
     stats::STATS,
@@ -85,6 +86,7 @@ impl SceneBuilder {
         shape: Shape,
         material: Material,
         world_to_object: Option<Transform3>,
+        medium_interface: MediumInterface,
     ) -> &mut Self {
         // TODO: material reuse/real material ids
         self.materials.push(material);
@@ -92,6 +94,7 @@ impl SceneBuilder {
             shape,
             self.materials.len() - 1,
             world_to_object,
+            medium_interface,
         ));
 
         self
@@ -102,13 +105,17 @@ impl SceneBuilder {
         shapes: Vec<Shape>,
         material: Material,
         world_to_object: Option<Transform3>,
+        medium_interface: MediumInterface,
     ) -> &mut Self {
         self.materials.push(material);
-        self.primitives.extend(
-            shapes
-                .into_iter()
-                .map(|s| Primitive::new(s, self.materials.len() - 1, world_to_object)),
-        );
+        self.primitives.extend(shapes.into_iter().map(|s| {
+            Primitive::new(
+                s,
+                self.materials.len() - 1,
+                world_to_object,
+                medium_interface.clone(),
+            )
+        }));
 
         self
     }

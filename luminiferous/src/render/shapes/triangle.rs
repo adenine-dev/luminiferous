@@ -105,7 +105,7 @@ impl ShapeT for Triangle {
     fn make_bounds(&self) -> Bounds3 {
         Bounds3::new(self.v[0], self.v[1])
             .expand(self.v[2])
-            .pad(1e-6) // deal with the case that the bounds have zero volume
+            .pad(1e-5) // deal with the case that the bounds have zero volume
     }
 
     fn transform(&mut self, transform: &Transform3) -> bool {

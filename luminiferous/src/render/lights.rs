@@ -7,7 +7,7 @@ mod point;
 pub use point::*;
 
 use crate::{
-    maths::{Point2, Point3, Ray, Vector3},
+    maths::{Normal3, Point2, Point3, Ray, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
 };
@@ -19,7 +19,7 @@ pub struct Visibility {
 
 pub struct LightSample {
     pub li: Spectrum,
-    pub wi: Vector3,
+    pub wo: Vector3,
     pub visibility: Visibility,
 }
 
@@ -30,6 +30,8 @@ pub trait LightT {
     fn l_e(&self, wi: Vector3) -> Spectrum;
 
     fn sample_li(&self, interaction: &SurfaceInteraction, u: Point2) -> LightSample;
+
+    fn sample(&self, p: Point3, n: Normal3, u: Point2) -> LightSample;
 }
 
 #[enum_dispatch(LightT)]

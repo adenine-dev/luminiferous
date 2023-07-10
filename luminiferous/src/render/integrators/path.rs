@@ -104,11 +104,11 @@ impl IntegratorT for PathIntegrator {
 
                                             if scene.test_visibility(emitted.visibility) {
                                                 let f =
-                                                    material.eval(&interaction, emitted.wi, ray.d);
+                                                    material.eval(&interaction, emitted.wo, ray.d);
                                                 contributed += surface_reflectance
                                                     * f
                                                     * emitted.li
-                                                    * emitted.wi.dot(interaction.n).abs();
+                                                    * emitted.wo.dot(interaction.n).abs();
                                             }
                                         }
                                     }

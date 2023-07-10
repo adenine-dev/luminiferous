@@ -1,6 +1,9 @@
 mod path;
 pub use path::*;
 
+mod vol_path;
+pub use vol_path::*;
+
 use enum_dispatch::enum_dispatch;
 
 use crate::scene::Scene;
@@ -13,4 +16,5 @@ pub trait IntegratorT {
 #[enum_dispatch(IntegratorT)]
 pub enum Integrator {
     Path(PathIntegrator),
+    VolPath(VolPathIntegrator),
 }

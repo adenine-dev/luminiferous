@@ -8,6 +8,8 @@ pub mod cameras;
 pub mod integrators;
 pub mod lights;
 pub mod materials;
+pub mod media;
+pub mod phase_functions;
 pub mod rfilters;
 pub mod samplers;
 pub mod shapes;

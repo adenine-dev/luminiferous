@@ -16,6 +16,9 @@ pub use conductor::*;
 mod dielectric;
 pub use dielectric::*;
 
+mod null;
+pub use null::*;
+
 mod util;
 pub use util::*;
 
@@ -28,14 +31,17 @@ pub struct BsdfSample {
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct BsdfFlags: u32 {
-        /// Empty flags
+        // Empty flags
         const None = 1 << 0;
 
-        // Lobes
-        const DiffuseReflection = 1 << 1;
+        // special case for the null bsdf
+        const Null = 1 << 1;
 
-        const DeltaReflection = 1 << 2;
-        const DeltaTransmission = 1 << 3;
+        // Lobes
+        const DiffuseReflection = 1 << 2;
+
+        const DeltaReflection = 1 << 3;
+        const DeltaTransmission = 1 << 4;
 
         // Compound
         const Diffuse = Self::DiffuseReflection.bits();
@@ -59,4 +65,5 @@ pub enum Bsdf {
     Lambertian(Lambertian),
     Conductor(Conductor),
     Dielectric(Dielectric),
+    Null(NullBsdf),
 }

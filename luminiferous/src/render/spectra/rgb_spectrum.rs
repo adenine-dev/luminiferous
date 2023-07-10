@@ -19,6 +19,10 @@ impl SpectrumT for RgbSpectrum {
         Self { c: [r, g, b] }
     }
 
+    fn splat(x: f32) -> Self {
+        Self { c: [x, x, x] }
+    }
+
     fn zero() -> Self {
         Self { c: [0.0, 0.0, 0.0] }
     }

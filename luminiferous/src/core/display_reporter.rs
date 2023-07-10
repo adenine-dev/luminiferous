@@ -79,8 +79,8 @@ impl TevReporter {
 
     pub fn should_report(&self) -> bool {
         // return false;
-        let now: Instant = Instant::now();
-        self.is_connected() && now.duration_since(self.last_report).as_millis() > REPORT_DURATION
+        self.is_connected()
+            && Instant::now().duration_since(self.last_report).as_millis() > REPORT_DURATION
     }
 
     pub fn update_pixels(&mut self, bounds: UBounds2, pixels: Vec<f32>, force: bool) {

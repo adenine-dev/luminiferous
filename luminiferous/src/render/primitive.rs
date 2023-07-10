@@ -1,5 +1,6 @@
 use crate::{
     maths::{face_forward, Bounds3, Normal3, Point2, Point3, Ray, Transform3, Vector3},
+    media::{Medium, MediumInterface},
     shapes::{Shape, ShapeIntersection, ShapeT},
 };
 
@@ -8,6 +9,7 @@ pub struct Primitive {
     pub shape: Shape,
     pub material_index: usize,
     pub world_to_object: Option<Transform3>,
+    pub medium_interface: MediumInterface,
 }
 
 pub struct Intersection<'a> {
@@ -27,6 +29,14 @@ impl<'a> SurfaceInteraction<'a> {
     pub fn spawn_ray(&self, d: Vector3) -> Ray {
         Ray::new(self.p + face_forward(self.n, d) * 1e-6, d)
     }
+
+    pub fn target_medium(&self, d: Vector3) -> Option<Medium> {
+        if self.n.dot(d) > 0.0 {
+            self.primitive.medium_interface.outside.clone()
+        } else {
+            self.primitive.medium_interface.inside.clone()
+        }
+    }
 }
 
 impl<'a> Primitive {
@@ -34,6 +44,7 @@ impl<'a> Primitive {
         mut shape: Shape,
         material_index: usize,
         mut world_to_object: Option<Transform3>,
+        medium_interface: MediumInterface,
     ) -> Self {
         if let Some(t) = world_to_object {
             if shape.transform(&t) {
@@ -45,6 +56,7 @@ impl<'a> Primitive {
             shape,
             material_index,
             world_to_object,
+            medium_interface,
         }
     }
 

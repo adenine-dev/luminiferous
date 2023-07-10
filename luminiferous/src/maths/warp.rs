@@ -31,4 +31,10 @@ pub fn square_to_cosine_hemisphere(u: Point2) -> Vector3 {
     Vector3::new(d.x, d.y, z)
 }
 
-//TODO: maybe cosine hemisphere?
+pub fn square_to_uniform_sphere(u: Point2) -> Vector3 {
+    let z = (-2.0f32).mul_add(u.y, 1.0);
+    let r = (-z * z + 1.0).abs().sqrt();
+    let (s, c) = (2.0 * core::f32::consts::PI * u.x).sin_cos();
+
+    Vector3::new(r * c, r * s, z)
+}

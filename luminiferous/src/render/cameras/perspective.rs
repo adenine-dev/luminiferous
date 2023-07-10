@@ -1,6 +1,7 @@
 use crate::{
     film::Film,
     maths::{warp, Matrix4, Point2, Point3, Ray, Transform3, Vector3},
+    media::Medium,
 };
 
 use super::{CameraSample, CameraT};
@@ -12,6 +13,7 @@ pub struct PerspectiveCamera {
     pub focal_dist: f32,
     film: Film,
     to_world: Transform3,
+    medium: Option<Medium>,
 }
 
 impl PerspectiveCamera {
@@ -21,6 +23,7 @@ impl PerspectiveCamera {
         fov_radians: f32,
         lens_radius: f32,
         focal_dist: f32,
+        medium: Option<Medium>,
     ) -> Self {
         let near = 0.001;
         let far = 1.0;
@@ -54,6 +57,7 @@ impl PerspectiveCamera {
             ),
             lens_radius,
             focal_dist,
+            medium,
         }
     }
 }
@@ -81,5 +85,9 @@ impl CameraT for PerspectiveCamera {
 
     fn get_film(&self) -> &Film {
         &self.film
+    }
+
+    fn medium(&self) -> Option<Medium> {
+        self.medium.clone()
     }
 }

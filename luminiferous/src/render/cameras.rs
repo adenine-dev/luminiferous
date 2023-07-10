@@ -1,6 +1,7 @@
 use crate::{
     film::Film,
     maths::{Point2, Ray},
+    media::Medium,
 };
 
 mod perspective;
@@ -20,6 +21,8 @@ pub trait CameraT {
     fn sample_ray(&self, sample: CameraSample) -> Ray;
 
     fn get_film(&self) -> &Film;
+
+    fn medium(&self) -> Option<Medium>;
 }
 
 #[enum_dispatch(CameraT)]
