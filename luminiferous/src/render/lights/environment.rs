@@ -1,5 +1,5 @@
 use crate::{
-    maths::{warp, Frame3, Point2, Ray, Vector2, Vector3},
+    maths::{warp, Frame3, Point2, Vector2, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
     stats::STATS,
@@ -26,10 +26,6 @@ impl LightT for Environment {
     }
 
     fn l_e(&self, wi: Vector3) -> Spectrum {
-        //NOTE: currently wrong but gives fine results for now.
-        // let t = 0.5 * (wi.y + 1.0);
-        // t * self.radiance + (1.0 - t) * Spectrum::new(1.0, 1.0, 1.0)
-
         self.radiance.eval_uv(
             Point2::new(
                 -wi.z.atan2(wi.x) / core::f32::consts::TAU,
@@ -49,7 +45,7 @@ impl LightT for Environment {
             wi,
             li: self.l_e(wi),
             visibility: Visibility {
-                ray: Ray::new(si.p + (si.n * 1.0e-6), wi),
+                ray: si.spawn_ray(wi),
                 end: si.p + wi * 1.0e7,
             },
         }

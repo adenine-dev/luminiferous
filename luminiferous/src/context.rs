@@ -19,7 +19,13 @@ use crate::{
     stats::STATS,
     textures::{CheckerboardTexture, ConstantTexture, Texture, TextureMapping, UvTexture},
 };
-use crate::{bsdfs::Conductor, scene::SceneBuilder, shapes::Triangle, textures::ImageTexture};
+use crate::{
+    bsdfs::{ior, Conductor, Dielectric},
+    maths::{Normal3, Point2},
+    scene::SceneBuilder,
+    shapes::Triangle,
+    textures::ImageTexture,
+};
 
 pub struct Context {
     scene: Scene,
@@ -38,13 +44,69 @@ impl Context {
 
         let start = Instant::now();
         // let (width, height) = (3840, 2160);
-        // let (width, height) = (1600, 900);
+        let (width, height) = (1600, 900);
         // let (width, height) = (800, 450);
+        // let (width, height) = (800, 800);
+        // let (width, height) = (1200, 1200);
         // let (width, height) = (512, 384);
-        let (width, height) = (320, 180);
+        // let (width, height) = (320, 180);
         // let (width, height) = (100, 62);
 
         // let (width, height) = (69, 420);
+
+        //TODO: replace with actual scene loading lol.. this is extremely quick and bad
+        let load_obj = |sb: &mut SceneBuilder, path, material, world_to_object| {
+            let (models, _) = tobj::load_obj(
+                path,
+                // "assets/bunny/bunny.obj",
+                &tobj::GPU_LOAD_OPTIONS,
+            )
+            .expect("oof");
+
+            let mesh = &models[0].mesh;
+            let vertices = mesh
+                .positions
+                .chunks(3)
+                .map(|p| Point3::new(p[0], p[1], p[2]))
+                .collect::<Vec<_>>();
+            // assumes we have normals...
+            let normals = mesh
+                .normals
+                .chunks(3)
+                .map(|p| Normal3::new(p[0], p[1], p[2]))
+                .collect::<Vec<_>>();
+            // assume...
+            let uvs = mesh
+                .texcoords
+                .chunks(2)
+                .map(|p| Point2::new(p[0], p[1]))
+                .collect::<Vec<_>>();
+
+            let mut tris = vec![Shape::Triangle(Triangle::default()); mesh.indices.len() / 3];
+            for i in 0..mesh.indices.len() / 3 {
+                tris[i] = Shape::Triangle(Triangle::new(
+                    [
+                        vertices[mesh.indices[i * 3] as usize],
+                        vertices[mesh.indices[i * 3 + 1] as usize],
+                        vertices[mesh.indices[i * 3 + 2] as usize],
+                    ],
+                    [
+                        normals[mesh.indices[i * 3] as usize],
+                        normals[mesh.indices[i * 3 + 1] as usize],
+                        normals[mesh.indices[i * 3 + 2] as usize],
+                    ],
+                    [
+                        *(uvs.get(mesh.indices[i * 3] as usize)).unwrap_or(&Point2::new(1.0, 0.0)),
+                        *(uvs.get(mesh.indices[i * 3 + 1] as usize))
+                            .unwrap_or(&Point2::new(0.0, 1.0)),
+                        *(uvs.get(mesh.indices[i * 3 + 2] as usize))
+                            .unwrap_or(&Point2::new(0.0, 1.0)),
+                    ],
+                ));
+            }
+
+            sb.primitives(tris, material, world_to_object);
+        };
 
         let scene = match 1 {
             // sphere pyramid
@@ -58,8 +120,8 @@ impl Context {
                     Transform3::new(
                         Matrix4::look_at_rh(
                             // Point3::new(-6.0, 6.0, 6.0),
-                            Point3::new(10.0, 3.0, 10.0),
-                            Point3::new(0.0, 0.0, 0.0),
+                            Point3::new(-10.0, 5.0, -7.0),
+                            Point3::new(0.0, 1.0, 0.0),
                             Vector3::Y,
                         )
                         .inverse(),
@@ -84,7 +146,7 @@ impl Context {
                             );
 
                             scene_builder.primitive(
-                                Shape::Sphere(Sphere::new(p, r)),
+                                Shape::Sphere(Sphere::new(r)),
                                 Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
                                     Lambertian::new(Texture::Constant(ConstantTexture::new(
                                         Spectrum::from_rgb(
@@ -94,6 +156,7 @@ impl Context {
                                         ),
                                     ))),
                                 ))),
+                                Some(Transform3::translate(p)),
                             );
                         }
                     }
@@ -126,10 +189,11 @@ impl Context {
                 // }
 
                 scene_builder.primitive(
-                    Shape::Sphere(Sphere::new(Vector3::new(0.0, -50000.5, 0.0), 50000.0)),
+                    Shape::Sphere(Sphere::new(50000.0)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
                         Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.5, 0.5, 0.5))),
                     )))),
+                    Some(Transform3::translate(Vector3::new(0.0, -50000.5, 0.0))),
                 );
 
                 scene_builder.light(Light::Environment(Environment::new(Texture::Constant(
@@ -150,8 +214,6 @@ impl Context {
                         Matrix4::look_at_rh(
                             Point3::new(12.0, 20.0, 18.0),
                             Point3::new(0.0, 13.0, 0.0),
-                            // Point3::new(1.0, 1.0, 1.0),
-                            // Point3::splat(0.0),
                             Vector3::Y,
                         )
                         .inverse(),
@@ -161,55 +223,29 @@ impl Context {
                     0.0,
                 )));
 
-                let mut load = |path, material| {
-                    let (models, _) = tobj::load_obj(
-                        path,
-                        // "assets/bunny/bunny.obj",
-                        &tobj::GPU_LOAD_OPTIONS,
-                    )
-                    .expect("oof");
-
-                    let mesh = &models[0].mesh;
-                    let vertices = mesh
-                        .positions
-                        .chunks(3)
-                        .map(|p| Point3::new(p[0], p[1], p[2]))
-                        .collect::<Vec<_>>();
-                    let mut tris =
-                        vec![Shape::Triangle(Triangle::default()); mesh.indices.len() / 3];
-                    for i in 0..mesh.indices.len() / 3 {
-                        tris[i] = Shape::Triangle(Triangle::new(
-                            vertices[mesh.indices[i * 3] as usize],
-                            vertices[mesh.indices[i * 3 + 1] as usize],
-                            vertices[mesh.indices[i * 3 + 2] as usize],
-                        ));
-                    }
-
-                    sb.primitives(tris, material);
-                };
-
-                load(
+                load_obj(
+                    &mut sb,
                     "assets/Flamehorn Wyrmling/BabyDragon_C_v01_reduced.obj",
-                    Material::Direct(DirectMaterial::new(
-                        Bsdf::Conductor(Conductor::new(Texture::Constant(ConstantTexture::new(
-                            Spectrum::from_rgb(0.8, 0.8, 0.8),
-                        )))), //     Bsdf::Lambertian(Lambertian::new(
-                              //     Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.5, 0.8))),
-                              // ))
-                    )),
+                    Material::Direct(DirectMaterial::new(Bsdf::Conductor(Conductor::new(
+                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
+                    )))),
+                    None,
                 );
-                load(
+                load_obj(
+                    &mut sb,
                     "assets/Flamehorn Wyrmling/BabyDragon_C_Base_v01_reduced.obj",
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
                         Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.2, 0.2, 0.2))),
                     )))),
+                    None,
                 );
 
                 sb.primitive(
-                    Shape::Sphere(Sphere::new(Vector3::new(0.0, -50000.5, 0.0), 50000.0)),
+                    Shape::Sphere(Sphere::new(50000.0)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
                         Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.5, 0.5, 0.5))),
                     )))),
+                    Some(Transform3::translate(Vector3::new(0.0, -50000.5, 0.0))),
                 );
 
                 sb.light(Light::Environment(Environment::new(
@@ -225,6 +261,7 @@ impl Context {
 
                 sb.build()
             }
+            // material test
             2 => {
                 let mut sb = SceneBuilder::new();
                 sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
@@ -234,56 +271,47 @@ impl Context {
                     ),
                     Transform3::new(
                         Matrix4::look_at_rh(
-                            Point3::new(1.0, 0.0, 0.0),
+                            // Point3::new(0.0, 2.0, 8.0),
+                            Point3::new(0.0, 2.0, 8.0),
+                            // Point3::new(0.0, 0.0, 8.0),
                             Point3::new(0.0, 0.0, 0.0),
-                            // Point3::new(1.0, 1.0, 1.0),
-                            // Point3::splat(0.0),
                             Vector3::Y,
                         )
                         .inverse(),
                     ),
-                    core::f32::consts::FRAC_PI_2,
+                    0.4,
                     0.0,
                     0.0,
                 )));
 
-                sb.primitive(
-                    Shape::Sphere(Sphere::new(Vector3::new(0.0, -50000.5, 0.0), 50000.0)),
+                let r = 1.0;
+
+                load_obj(
+                    &mut sb,
+                    "assets/material_test/backdrop.obj",
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.5, 0.5, 0.5))),
+                        Texture::Checkerboard(CheckerboardTexture::new(
+                            Spectrum::from_rgb(0.3, 0.3, 0.3),
+                            Spectrum::from_rgb(0.8, 0.8, 0.8),
+                            TextureMapping::new(Matrix3::from_scale(Vector2::splat(11.8))),
+                        )),
                     )))),
+                    Some(Transform3::translate(Vector3::new(0.0, -r, 0.0))),
                 );
 
                 sb.primitive(
-                    Shape::Sphere(Sphere::new(Vector3::new(0.0, 0.0, 0.0), 0.5)),
-                    // Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                    //     Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
-                    // )))),
-                    Material::Direct(DirectMaterial::new(Bsdf::Conductor(Conductor::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(1.0, 1.0, 1.0))),
-                    )))),
-                );
-                sb.primitive(
-                    Shape::Sphere(Sphere::new(Vector3::new(0.0, 0.0, -1.0), 0.5)),
-                    Material::Direct(DirectMaterial::new(Bsdf::Conductor(Conductor::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(1.0, 1.0, 1.0))),
-                    )))),
-                );
-                sb.primitive(
-                    Shape::Sphere(Sphere::new(Vector3::new(0.0, 0.0, 1.0), 0.5)),
+                    Shape::Sphere(Sphere::new(r)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.5, 0.8))),
+                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(1.0, 0.8, 1.0))),
                     )))),
+                    None,
                 );
 
-                sb.light(Light::Environment(Environment::new(
-                    // Texture::Constant(
-                    //     ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8)),
-                    // )
-                    Texture::Image(ImageTexture::from_path(Path::new(
-                        "assets/kloppenheim_07_puresky/kloppenheim_07_puresky_4k.exr",
-                    ))),
-                )));
+                sb.light(Light::Environment(Environment::new(Texture::Image(
+                    ImageTexture::from_path(Path::new(
+                        "assets/material_test/christmas_photo_studio_07.exr",
+                    )),
+                ))));
 
                 sb.build()
             }
@@ -296,7 +324,7 @@ impl Context {
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
         // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
-        const MAX_BOUNCES: u32 = 10;
+        const MAX_BOUNCES: u32 = 100;
         let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES));
 
         let duration = start.elapsed();

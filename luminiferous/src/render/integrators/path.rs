@@ -57,6 +57,7 @@ impl IntegratorT for PathIntegrator {
                         while pixel_sampler.advance() {
                             let offset = pixel_sampler.next_2d() - Vector2::splat(0.5);
                             let p = Point2::new(x as f32, y as f32) + offset;
+                            let tp = Point2::new(tx as f32, ty as f32) + offset;
 
                             let mut ray = scene.camera.sample_ray(CameraSample {
                                 p_film: p,
@@ -70,8 +71,22 @@ impl IntegratorT for PathIntegrator {
                             let mut i = 1;
                             let mut _num_tests = 0;
                             while i < self.max_depth {
-                                if let (Some(interaction), n) = scene.intersect(ray) {
-                                    _num_tests += n;
+                                let (interaction, _n) = scene.intersect(ray);
+                                // _num_tests += _n;
+                                // tile.apply_sample(
+                                //     tp,
+                                //     Spectrum::from_rgb(
+                                //         _num_tests as f32,
+                                //         _num_tests as f32,
+                                //         _num_tests as f32,
+                                //     ),
+                                // );
+                                // break;
+                                if let Some(interaction) = interaction {
+                                    // let n = 0.5 * (interaction.n + 1.0);
+                                    // tile.apply_sample(tp, Spectrum::from_rgb(n.x, n.y, n.z));
+                                    // break;
+
                                     let material =
                                         &scene.materials[interaction.primitive.material_index];
                                     let sample = material.sample(
@@ -104,8 +119,7 @@ impl IntegratorT for PathIntegrator {
                                         break;
                                     }
 
-                                    ray.o = interaction.p;
-                                    ray.d = sample.wo;
+                                    ray = interaction.spawn_ray(sample.wo);
 
                                     // contributed = Spectrum::from_rgb(sample.wo.x, sample.wo.y, sample.wo.z);
                                     // break;
@@ -125,15 +139,7 @@ impl IntegratorT for PathIntegrator {
                                 STATS.zero_radiance_paths.inc();
                             }
 
-                            let tp = Point2::new(tx as f32, ty as f32) + offset;
                             tile.apply_sample(tp, contributed);
-                            // tile.apply_sample(tp, Spectrum::from_rgb(1.0, 0.0, 1.0));
-                            // film.apply_sample(p, contributed);
-
-                            // film.apply_sample(
-                            //     p,
-                            //     Spectrum::from_rgb(num_tests as f32, num_tests as f32, num_tests as f32),
-                            // );
 
                             STATS.path_length.add(i as i64);
                         }

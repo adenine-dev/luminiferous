@@ -7,3 +7,7 @@ This is a hobby ray tracer. Very much a work in progress right now. Commits are 
 ![Dragon](./renders/dragon.png)
 
 <p align="middle">Dragon</p>
+
+![Dragon](./renders/monkey.png)
+
+<p align="middle">Monkey</p>

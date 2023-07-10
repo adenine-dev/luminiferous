@@ -1,27 +1,26 @@
 use crate::{
-    maths::{Bounds3, Point2, Point3, Ray, Vector3},
+    maths::{Bounds3, Point2, Ray, Vector3},
     stats::STATS,
 };
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Sphere {
-    origin: Point3,
     radius: f32,
 }
 
 impl Sphere {
-    pub fn new(origin: Point3, radius: f32) -> Self {
+    pub fn new(radius: f32) -> Self {
         STATS.shapes_created.inc();
 
-        Self { origin, radius }
+        Self { radius }
     }
 }
 
 impl ShapeT for Sphere {
     fn intersect(&self, ray: Ray) -> ShapeIntersection {
-        let oc = ray.o - self.origin;
+        let oc = ray.o;
         let a = ray.d.dot(ray.d);
         let b = 2.0 * oc.dot(ray.d);
         let c = oc.dot(oc) - self.radius * self.radius;
@@ -42,7 +41,7 @@ impl ShapeT for Sphere {
         intersection: ShapeIntersection,
     ) -> ShapeInteraction {
         let p = ray.at(intersection.t);
-        let n = (p - self.origin).normalize();
+        let n = p.normalize();
 
         let u = n.x.atan2(n.z) / (core::f32::consts::PI * 2.0) + 0.5;
         let v = n.y * 0.5 + 0.5;
@@ -56,9 +55,6 @@ impl ShapeT for Sphere {
     }
 
     fn make_bounds(&self) -> Bounds3 {
-        Bounds3::new(
-            self.origin - Vector3::splat(self.radius),
-            self.origin + Vector3::splat(self.radius),
-        )
+        Bounds3::new(Vector3::splat(-self.radius), Vector3::splat(self.radius))
     }
 }

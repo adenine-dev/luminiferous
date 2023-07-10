@@ -13,6 +13,12 @@ pub use lambertian::*;
 mod conductor;
 pub use conductor::*;
 
+mod dielectric;
+pub use dielectric::*;
+
+mod util;
+pub use util::*;
+
 pub struct BsdfSample {
     pub wo: Vector3,
 
@@ -27,12 +33,14 @@ bitflags! {
 
         // Lobes
         const DiffuseReflection = 1 << 1;
+
         const DeltaReflection = 1 << 2;
+        const DeltaTransmission = 1 << 3;
 
         // Compound
         const Diffuse = Self::DiffuseReflection.bits();
         const Smooth = Self::Diffuse.bits();
-        const Delta = Self::DeltaReflection.bits();
+        const Delta = Self::DeltaReflection.bits() | Self::DeltaTransmission.bits();
     }
 }
 
@@ -50,4 +58,5 @@ pub trait BsdfT {
 pub enum Bsdf {
     Lambertian(Lambertian),
     Conductor(Conductor),
+    Dielectric(Dielectric),
 }

@@ -51,3 +51,11 @@ pub fn max_dimension_v3(v: Vector3) -> usize {
         2
     }
 }
+
+pub fn face_forward(n: Normal3, v: Vector3) -> Normal3 {
+    if 0.0 > n.dot(v) {
+        -n
+    } else {
+        n
+    }
+}

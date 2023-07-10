@@ -1,29 +1,29 @@
 use crate::{
-    maths::{max_dimension_v3, permute_v3, Bounds3, Point2, Point3, Ray},
+    maths::{max_dimension_v3, permute_v3, Bounds3, Normal3, Point2, Point3, Ray, Transform3},
     stats::STATS,
 };
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Triangle {
-    a: Point3,
-    b: Point3,
-    c: Point3,
+    v: [Point3; 3],
+    n: [Normal3; 3],
+    uv: [Point2; 3],
 }
 
 impl Triangle {
-    pub fn new(a: Point3, b: Point3, c: Point3) -> Self {
+    pub fn new(v: [Point3; 3], n: [Normal3; 3], uv: [Point2; 3]) -> Self {
         STATS.shapes_created.inc();
-        Self { a, b, c }
+        Self { v, n, uv }
     }
 }
 
 impl ShapeT for Triangle {
     fn intersect(&self, ray: Ray) -> ShapeIntersection {
-        let a_t = self.a - ray.o;
-        let b_t = self.b - ray.o;
-        let c_t = self.c - ray.o;
+        let a_t = self.v[0] - ray.o;
+        let b_t = self.v[1] - ray.o;
+        let c_t = self.v[2] - ray.o;
 
         let kz = max_dimension_v3(ray.d.abs());
         let kx = (kz + 1) % 3;
@@ -76,52 +76,42 @@ impl ShapeT for Triangle {
         ray: Ray,
         intersection: ShapeIntersection,
     ) -> ShapeInteraction {
-        let uvs = [
-            Point2::new(0.0, 0.0),
-            Point2::new(1.0, 0.0),
-            Point2::new(1.0, 1.0),
-        ];
+        let p = ray.at(intersection.t);
+        let v1 = self.v[0];
+        let v2 = self.v[1];
+        let v3 = self.v[2];
 
-        let a_t = self.a - ray.o;
-        let b_t = self.b - ray.o;
-        let c_t = self.c - ray.o;
+        let f1 = v1 - p;
+        let f2 = v2 - p;
+        let f3 = v3 - p;
 
-        let kz = max_dimension_v3(ray.d.abs());
-        let kx = (kz + 1) % 3;
-        let ky = (kx + 1) % 3;
-        let d = permute_v3(ray.d, kx, ky, kz);
-        let mut p0t = permute_v3(a_t, kx, ky, kz);
-        let mut p1t = permute_v3(b_t, kx, ky, kz);
-        let mut p2t = permute_v3(c_t, kx, ky, kz);
-        let s_x = -d.x / d.z;
-        let s_y = -d.y / d.z;
-
-        p0t.x += s_x * p0t.z;
-        p0t.y += s_y * p0t.z;
-        p1t.x += s_x * p1t.z;
-        p1t.y += s_y * p1t.z;
-        p2t.x += s_x * p2t.z;
-        p2t.y += s_y * p2t.z;
-
-        let e0 = p1t.x * p2t.y - p1t.y * p2t.x;
-        let e1 = p2t.x * p0t.y - p2t.y * p0t.x;
-        let e2 = p0t.x * p1t.y - p0t.y * p1t.x;
-
-        let det = e0 + e1 + e2;
-        let inv_det = det.recip();
-        let b0 = e0 * inv_det;
-        let b1 = e1 * inv_det;
-        let b2 = e2 * inv_det;
+        let det = (v1 - v2).cross(v1 - v3).length();
+        let b0 = f2.cross(f3).length() / det;
+        let b1 = f3.cross(f1).length() / det;
+        let b2 = f1.cross(f2).length() / det;
 
         ShapeInteraction {
             intersection,
             p: ray.at(intersection.t),
-            uv: b0 * uvs[0] + b1 * uvs[1] + b2 * uvs[2],
-            n: (self.a - self.c).cross(self.b - self.c).normalize(),
+            uv: b0 * self.uv[0] + b1 * self.uv[1] + b2 * self.uv[2],
+            n: b0 * self.n[0] + b1 * self.n[1] + b2 * self.n[2],
+            // TODO: option for flat shading
+            // n: (self.v[1] - self.v[0])
+            //     .cross(self.v[2] - self.v[0])
+            //     .normalize(),
         }
     }
 
     fn make_bounds(&self) -> Bounds3 {
-        Bounds3::new(self.a, self.b).expand(self.c)
+        Bounds3::new(self.v[0], self.v[1])
+            .expand(self.v[2])
+            .pad(1e-6) // deal with the case that the bounds have zero volume
+    }
+
+    fn transform(&mut self, transform: &Transform3) -> bool {
+        self.v = self.v.map(|v| transform.transform_point(v));
+        self.n = self.n.map(|n| transform.transform_normal(n));
+
+        true
     }
 }

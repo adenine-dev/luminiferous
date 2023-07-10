@@ -57,6 +57,13 @@ impl Bounds3 {
         Self::new(self.min.min(p), self.max.max(p))
     }
 
+    pub fn pad(&self, padding: f32) -> Self {
+        Self {
+            min: self.min - padding,
+            max: self.max + padding,
+        }
+    }
+
     pub fn centroid(&self) -> Point3 {
         (self.min + self.max) * 0.5
     }

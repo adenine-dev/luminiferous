@@ -308,11 +308,6 @@ impl TileProvider {
             .clamp(Point2::ZERO, extent.as_vec2())
             .as_uvec2();
 
-        // let x =
-        //     ((x * tile_size.x as f32 + (extent.x as f32 / 2.0)).round() as u32).clamp(0, extent.x);
-        // let y =
-        //     ((y * tile_size.y as f32 + (extent.y as f32 / 2.0)).round() as u32).clamp(0, extent.y);
-
         // for typical scanlines
         // let x = (n * tile_size.x) % extent.x;
         // let y = (n * tile_size.x) / extent.x * tile_size.y;

@@ -14,7 +14,7 @@ impl ProgressBar {
                 "{msg} {spinner} [{elapsed}|{eta}] {bar:60.magenta/blue} ({percent}%)",
             )
             .unwrap()
-            .progress_chars("═❆❆—")
+            .progress_chars("═❥—")
             // .tick_strings(&[
             //     // red
             //     "\x1B[38;2;255;128;128m❤\x1B[m",

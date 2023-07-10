@@ -1,5 +1,5 @@
 use crate::{
-    maths::{Point2, Point3, Ray, Vector3},
+    maths::{Point2, Point3, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
     stats::STATS,
@@ -36,7 +36,7 @@ impl LightT for PointLight {
             wi,
             li: self.l_e(wi),
             visibility: Visibility {
-                ray: Ray::new(interaction.p + interaction.n * 1.0e-6, wi),
+                ray: interaction.spawn_ray(wi),
                 end: self.p,
             },
         }

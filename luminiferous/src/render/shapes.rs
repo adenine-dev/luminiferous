@@ -6,7 +6,7 @@ pub use sphere::*;
 mod triangle;
 pub use triangle::*;
 
-use crate::maths::{Bounds3, Normal3, Point2, Point3, Ray};
+use crate::maths::{Bounds3, Normal3, Point2, Point3, Ray, Transform3};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ShapeIntersection {
@@ -31,10 +31,15 @@ pub trait ShapeT {
     ) -> ShapeInteraction;
 
     fn make_bounds(&self) -> Bounds3;
+
+    /// If possible transforms the shape by the specified transform and returns true. Otherwise does not transform the shape and returns false.
+    fn transform(&mut self, _transform: &Transform3) -> bool {
+        false
+    }
 }
 
 #[enum_dispatch(ShapeT)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Shape {
     Sphere(Sphere),
     Triangle(Triangle),

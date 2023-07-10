@@ -3,7 +3,7 @@ use crate::{
     cameras::Camera,
     lights::{Light, Visibility},
     materials::Material,
-    maths::Ray,
+    maths::{Ray, Transform3},
     primitive::{Primitive, SurfaceInteraction},
     shapes::Shape,
     stats::STATS,
@@ -58,6 +58,7 @@ pub struct SceneBuilder {
 }
 
 impl SceneBuilder {
+    #[allow(clippy::new_without_default)] // something will probably eventually happen here idk
     pub fn new() -> Self {
         Self {
             lights: vec![],
@@ -79,21 +80,34 @@ impl SceneBuilder {
         self
     }
 
-    pub fn primitive(&mut self, shape: Shape, material: Material) -> &mut Self {
+    pub fn primitive(
+        &mut self,
+        shape: Shape,
+        material: Material,
+        world_to_object: Option<Transform3>,
+    ) -> &mut Self {
         // TODO: material reuse/real material ids
         self.materials.push(material);
-        self.primitives
-            .push(Primitive::new(shape, self.materials.len() - 1));
+        self.primitives.push(Primitive::new(
+            shape,
+            self.materials.len() - 1,
+            world_to_object,
+        ));
 
         self
     }
 
-    pub fn primitives(&mut self, shapes: Vec<Shape>, material: Material) -> &mut Self {
+    pub fn primitives(
+        &mut self,
+        shapes: Vec<Shape>,
+        material: Material,
+        world_to_object: Option<Transform3>,
+    ) -> &mut Self {
         self.materials.push(material);
         self.primitives.extend(
             shapes
                 .into_iter()
-                .map(|s| Primitive::new(s, self.materials.len() - 1)),
+                .map(|s| Primitive::new(s, self.materials.len() - 1, world_to_object)),
         );
 
         self

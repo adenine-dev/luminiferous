@@ -5,6 +5,7 @@ use tev_client::{PacketCreateImage, PacketUpdateImage, TevClient};
 use crate::maths::{UBounds2, UExtent2};
 
 //TODO: tev_client doesn't do vector graphics so maybe this should be custom and show recently updated tiles or something shrug.
+//TODO: don't send the entire pixel buffer every time
 
 /// Wraps over an optional Tev client.
 #[derive(Debug)]
@@ -47,28 +48,28 @@ impl TevReporter {
                 client.unwrap_err()
             );
 
-            error_self
-        } else {
-            let mut client = client.unwrap();
-            println!("[INFO]: Display server connected");
-            if let Err(err) = client.send(PacketCreateImage {
-                image_name: "[Luminiferous Render]",
-                grab_focus: false,
-                width: extent.x,
-                height: extent.y,
-                channel_names: &["R", "G", "B"],
-            }) {
-                println!("[WARN]: Display server disconnected on image create: {err}");
-                return error_self;
-            }
+            return error_self;
+        }
 
-            Self {
-                client: Some(client),
-                last_report: Instant::now(),
-                pixels: vec![0.0; 3 * extent.x as usize * extent.y as usize],
-                // rendered_bounds: UBounds2::default(),
-                extent,
-            }
+        let mut client = client.unwrap();
+        println!("[INFO]: Display server connected");
+        if let Err(err) = client.send(PacketCreateImage {
+            image_name: "[Luminiferous Render]",
+            grab_focus: false,
+            width: extent.x,
+            height: extent.y,
+            channel_names: &["R", "G", "B"],
+        }) {
+            println!("[WARN]: Display server disconnected on image create: {err}");
+            return error_self;
+        }
+
+        Self {
+            client: Some(client),
+            last_report: Instant::now(),
+            pixels: vec![0.0; 3 * extent.x as usize * extent.y as usize],
+            // rendered_bounds: UBounds2::default(),
+            extent,
         }
     }
 
@@ -89,7 +90,7 @@ impl TevReporter {
                     let i_s = (x + y * self.extent.x) as usize * 3;
                     let i_o =
                         ((x - bounds.min.x) + (y - bounds.min.y) * bounds.width()) as usize * 3;
-                    self.pixels[i_s + 0] = pixels[i_o + 0];
+                    self.pixels[i_s] = pixels[i_o];
                     self.pixels[i_s + 1] = pixels[i_o + 1];
                     self.pixels[i_s + 2] = pixels[i_o + 2];
                 }

@@ -1,4 +1,4 @@
-use std::{mem::size_of, num::NonZeroUsize};
+use std::mem::size_of;
 
 use crate::{
     maths::{Bounds3, Point3, Ray},
@@ -11,7 +11,7 @@ use super::AggregateT;
 const INVALID_IDX: usize = usize::MAX;
 
 struct LeafNode {
-    num_primitives: NonZeroUsize,
+    num_primitives: usize,
     index: usize,
 }
 
@@ -56,7 +56,7 @@ impl Bvh {
             .map(|(i, p)| BvhNode {
                 bounds: p.make_bounds(),
                 node_type: BvhNodeType::Leaf(LeafNode {
-                    num_primitives: NonZeroUsize::new(1).unwrap(),
+                    num_primitives: 1,
                     index: i,
                 }),
             })
@@ -122,7 +122,7 @@ impl Bvh {
             nodes.push(BvhNode {
                 bounds,
                 node_type: BvhNodeType::Leaf(LeafNode {
-                    num_primitives: NonZeroUsize::new(1).unwrap(),
+                    num_primitives: 1,
                     index: ordered_primitives.len() - 1,
                 }),
             });
@@ -164,17 +164,17 @@ impl Bvh {
 
                         let mut costs = [0.0; NUM_BUCKETS - 1];
                         for i in 0..NUM_BUCKETS - 1 {
-                            let mut b0 = Bounds3::default();
-                            let mut b1 = Bounds3::default();
-                            let mut c0 = 0;
-                            let mut c1 = 0;
+                            let mut b0 = buckets[0].1;
+                            let mut b1 = buckets[i + 1].1;
+                            let mut c0 = buckets[0].0;
+                            let mut c1 = buckets[i + 1].0;
 
-                            for (c, b) in buckets.iter().take(i + 1) {
+                            for (c, b) in buckets.iter().take(i + 1).skip(1) {
                                 b0 = b0.union(*b);
                                 c0 += c;
                             }
 
-                            for (c, b) in buckets.iter().take(NUM_BUCKETS).skip(i + 1) {
+                            for (c, b) in buckets.iter().take(NUM_BUCKETS).skip(i + 1 + 1) {
                                 b1 = b1.union(*b);
                                 c1 += c;
                             }
@@ -192,8 +192,6 @@ impl Bvh {
                                 min_idx = i;
                             }
                         }
-
-                        // dbg!(buckets);
 
                         let leaf_cost = n_primitives as f32;
                         const MAX_PRIMITIVES_IN_LEAF: usize = 4;
@@ -216,7 +214,7 @@ impl Bvh {
                             nodes.push(BvhNode {
                                 bounds,
                                 node_type: BvhNodeType::Leaf(LeafNode {
-                                    num_primitives: NonZeroUsize::new(n_primitives).unwrap(),
+                                    num_primitives: n_primitives,
                                     index,
                                 }),
                             });
@@ -292,7 +290,7 @@ impl Bvh {
             };
         }
         //NOTE: just here for testing since programmatically constructing scenes can leave them in a weird state
-        // let mut rand = Rand32::new(0);
+        // let mut rand = oorandom::Rand32::new(0);
         // primitives.sort_by_cached_key(|_| rand.rand_u32());
 
         let ret = Self::new_by_recursive_split(primitives);
@@ -324,7 +322,7 @@ impl Bvh {
                     self.primitives
                         .iter()
                         .skip(leaf.index)
-                        .take(leaf.num_primitives.get())
+                        .take(leaf.num_primitives)
                         .for_each(|p| {
                             let i = p.intersect(ray);
                             *n += 1;

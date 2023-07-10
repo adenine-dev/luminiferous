@@ -6,7 +6,7 @@ use crate::{
     textures::{Texture, TextureT},
 };
 
-use super::{BsdfFlags, BsdfSample, BsdfT};
+use super::{util::reflect, BsdfFlags, BsdfSample, BsdfT};
 
 #[derive(Clone)]
 pub struct Conductor {
@@ -19,10 +19,6 @@ impl Conductor {
 
         Self { reflectance }
     }
-}
-
-fn reflect(v: Vector3) -> Vector3 {
-    v * Vector3::new(-1.0, -1.0, 1.0)
 }
 
 //TODO: fresnel stuffs
