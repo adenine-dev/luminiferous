@@ -1,9 +1,13 @@
+use std::{collections::HashMap, path::Path};
+
 use crate::{
     aggregates::{Aggregate, AggregateT, Bvh},
+    bsdfs::BsdfFlags,
     cameras::Camera,
-    lights::{Light, Visibility},
-    materials::Material,
-    maths::{Ray, Transform3},
+    lights::{Light, LightT, Visibility},
+    loaders::{Loader, SceneCreationParams},
+    materials::{Material, MaterialT},
+    maths::{Bounds3, Ray, Transform3},
     media::MediumInterface,
     primitive::{Primitive, SurfaceInteraction},
     shapes::Shape,
@@ -36,7 +40,11 @@ impl Scene {
         STATS.shadow_intersection_tests.inc();
 
         if let Some(intersection) = self.aggregate.intersect_p(visibility.ray).0 {
-            if intersection.shape_intersection.t < visibility.end.distance(visibility.ray.o) {
+            if intersection.shape_intersection.t < visibility.end.distance(visibility.ray.o)
+            // && !self.materials[intersection.primitive.material_index]
+            //     .bsdf_flags()
+            //     .contains(BsdfFlags::Null)
+            {
                 return false;
             }
         }
@@ -49,23 +57,29 @@ impl Scene {
 
         self.aggregate.intersect(ray)
     }
+
+    pub fn bounds(&self) -> Bounds3 {
+        self.aggregate.bounds()
+    }
 }
 
+#[derive(Default)]
 pub struct SceneBuilder {
     lights: Vec<Light>,
     primitives: Vec<Primitive>,
     camera: Option<Camera>,
     materials: Vec<Material>,
+    named_materials: HashMap<String, usize>,
 }
 
 impl SceneBuilder {
-    #[allow(clippy::new_without_default)] // something will probably eventually happen here idk
     pub fn new() -> Self {
         Self {
             lights: vec![],
             primitives: vec![],
             camera: None,
             materials: vec![],
+            named_materials: HashMap::new(),
         }
     }
 
@@ -76,6 +90,10 @@ impl SceneBuilder {
     }
 
     pub fn camera(&mut self, camera: Camera) -> &mut Self {
+        if self.camera.is_some() {
+            println!("[WARN]: replacing scene camera.");
+        }
+
         self.camera = Some(camera);
 
         self
@@ -120,9 +138,25 @@ impl SceneBuilder {
         self
     }
 
+    pub fn material(&mut self, key: String, material: Material) -> &mut Self {
+        //TODO: material reuse
+        self.materials.push(material);
+        self.named_materials.insert(key, self.materials.len() - 1);
+
+        self
+    }
+
+    pub fn load_with<L: Loader>(&mut self, path: &Path, params: SceneCreationParams) -> &mut Self {
+        L::load_from_file(self, path, params);
+        self
+    }
+
     //FIXME: turn this into a result
     pub fn build(self) -> Option<Scene> {
         let aggregate = Aggregate::Bvh(Bvh::new(self.primitives));
+        if self.camera.is_none() {
+            println!("[WARN]: attempting to build scene without camera.");
+        }
         Some(Scene::new(
             self.lights,
             aggregate,

@@ -16,6 +16,10 @@ impl Transform3 {
         }
     }
 
+    pub fn identity() -> Self {
+        Self::new(Matrix4::IDENTITY)
+    }
+
     pub fn translate(v: Vector3) -> Self {
         let m = Matrix4::from_translation(v);
         Self::new(m)
@@ -139,7 +143,7 @@ impl Mul for Transform3 {
     fn mul(self, rhs: Self) -> Self::Output {
         Self {
             matrix: self.matrix * rhs.matrix,
-            inverse: self.inverse * rhs.inverse,
+            inverse: rhs.inverse * self.inverse,
         }
     }
 }

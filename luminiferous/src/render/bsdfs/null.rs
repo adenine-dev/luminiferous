@@ -7,7 +7,7 @@ use crate::{
 use super::{BsdfFlags, BsdfSample, BsdfT};
 
 /// Nothing interacts with this bsdf, should be used for media transitions
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct NullBsdf {}
 
 impl NullBsdf {

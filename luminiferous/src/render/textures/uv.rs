@@ -9,7 +9,7 @@ use crate::{
 
 use super::{Texture, TextureT};
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct UvTexture {}
 
 impl UvTexture {

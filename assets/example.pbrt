@@ -1,0 +1,35 @@
+LookAt 3 4 1.5  # eye
+       .5 .5 0  # look at point
+       0 0 1    # up vector
+Camera "perspective" "float fov" 45
+
+Sampler "stratified" "integer pixelsamples" 128
+Integrator "volpath"
+Film "rgb" "string filename" "simple.png"
+     "integer xresolution" [400] "integer yresolution" [400]
+
+WorldBegin
+
+# uniform blue-ish illumination from all directions
+# LightSource "infinite" "rgb L" [ .4 .45 .5 ]
+LightSource "infinite" "string filename" "material_test/christmas_photo_studio_07.exr"
+
+# approximate the sun
+LightSource "distant"  "point3 from" [ -30 40  100 ]
+   "blackbody L" 3000 "float scale" 1.5
+
+AttributeBegin
+  Material "dielectric"
+  Shape "sphere" "float radius" 1
+AttributeEnd
+
+# AttributeBegin
+#   Texture "checks" "spectrum" "checkerboard"
+#           "float uscale" [16] "float vscale" [16]
+#           "rgb tex1" [.1 .1 .1] "rgb tex2" [.8 .8 .8]
+#   Material "diffuse" "texture reflectance" "checks"
+#   Translate 0 0 -1
+#   Shape "bilinearmesh"
+#       "point3 P" [ -20 -20 0   20 -20 0   -20 20 0   20 20 0 ]
+#       "point2 uv" [ 0 0   1 0    1 1   0 1 ]
+# AttributeEnd

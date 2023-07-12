@@ -11,3 +11,7 @@
 - [kloppenheim_07_puresky](https://polyhaven.com/a/kloppenheim_07_puresky) (CC0)
 - [material_test/christmas_photo_studio_07](https://polyhaven.com/a/christmas_photo_studio_07) (CC0)
 - [studio_garden](https://polyhaven.com/a/studio_garden) (CC0)
+
+## Scenes
+
+- [scenes/dragon](https://benedikt-bitterli.me/resources/) (CC BY 3.0) (See directory for full license)

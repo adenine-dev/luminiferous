@@ -20,7 +20,7 @@ pub trait MaterialT {
 }
 
 #[enum_dispatch(MaterialT)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Material {
     Direct(DirectMaterial),
 }

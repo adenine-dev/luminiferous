@@ -14,5 +14,6 @@ glam = "0.24.0"
 indicatif = "0.17.5"
 oorandom = "11.1.3"
 rayon = "1.7.0"
+russimp = { version = "1.0.3", features = ["static-link"] }
 tev_client = "0.5.2"
 tobj = "4.0.0"

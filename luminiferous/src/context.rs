@@ -10,6 +10,7 @@ use crate::{
     integrators::VolPathIntegrator,
     integrators::{Integrator, IntegratorT, PathIntegrator},
     lights::{Environment, Light, PointLight},
+    loaders::{AssimpLoader, Loader},
     materials::{DirectMaterial, Material},
     maths::{Matrix3, Matrix4, Point3, Transform3, UVector2, Vector2, Vector3},
     maths::{Normal3, Point2},
@@ -26,6 +27,10 @@ use crate::{
     stats::STATS,
     textures::ImageTexture,
     textures::{CheckerboardTexture, ConstantTexture, Texture, TextureMapping, UvTexture},
+};
+use crate::{
+    loaders::{PbrtLoader, SceneCreationParams},
+    maths::UExtent2,
 };
 
 pub struct Context {
@@ -46,6 +51,7 @@ impl Context {
         let start = Instant::now();
         // let (width, height) = (3840, 2160);
         // let (width, height) = (1600, 900);
+        // let (width, height) = (1280, 720);
         let (width, height) = (800, 450);
         // let (width, height) = (800, 800);
         // let (width, height) = (1200, 1200);
@@ -111,7 +117,7 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 3 {
+        let scene = match 4 {
             // sphere pyramid
             0 => {
                 let mut scene_builder = SceneBuilder::new();
@@ -400,6 +406,17 @@ impl Context {
 
                 sb.build()
             }
+            // loader tests
+            4 => {
+                let mut sb = SceneBuilder::new();
+                sb.load_with::<PbrtLoader>(
+                    Path::new("assets/scenes/dragon/scene-v4.pbrt"),
+                    SceneCreationParams {
+                        extent: UExtent2::new(width, height),
+                    },
+                );
+                sb.build()
+            }
             _ => {
                 panic!("bad scene mode")
             }
@@ -409,7 +426,7 @@ impl Context {
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
         // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
-        const MAX_BOUNCES: u32 = 25;
+        const MAX_BOUNCES: u32 = 100;
         let integrator = Integrator::VolPath(VolPathIntegrator::new(sampler, MAX_BOUNCES));
 
         let duration = start.elapsed();

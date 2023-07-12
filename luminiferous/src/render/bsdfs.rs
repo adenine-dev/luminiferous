@@ -60,7 +60,7 @@ pub trait BsdfT {
 }
 
 #[enum_dispatch(BsdfT)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Bsdf {
     Lambertian(Lambertian),
     Conductor(Conductor),

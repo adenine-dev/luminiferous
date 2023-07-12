@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 use crate::{
-    maths::Ray,
+    maths::{Bounds3, Ray},
     primitive::{Intersection, Primitive},
     stats::STATS,
 };
@@ -10,6 +10,7 @@ use super::AggregateT;
 
 pub struct Vector {
     pub primitives: Vec<Primitive>,
+    bounds: Bounds3,
 }
 
 impl Vector {
@@ -17,7 +18,13 @@ impl Vector {
         STATS
             .primitive_memory
             .add((primitives.len() * size_of::<Primitive>() + size_of::<Self>()) as u64);
-        Vector { primitives }
+        STATS.aggregate_memory.add(size_of::<Self>() as u64);
+
+        let bounds = primitives
+            .iter()
+            .fold(primitives[0].make_bounds(), |b, p| b.union(p.make_bounds()));
+
+        Vector { primitives, bounds }
     }
 }
 
@@ -38,5 +45,9 @@ impl AggregateT for Vector {
         }
 
         (intersection, n)
+    }
+
+    fn bounds(&self) -> Bounds3 {
+        self.bounds
     }
 }

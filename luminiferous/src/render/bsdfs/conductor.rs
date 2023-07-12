@@ -8,7 +8,7 @@ use crate::{
 
 use super::{util::reflect, BsdfFlags, BsdfSample, BsdfT};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Conductor {
     reflectance: Texture,
 }

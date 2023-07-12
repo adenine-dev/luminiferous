@@ -6,6 +6,9 @@ pub use environment::*;
 mod point;
 pub use point::*;
 
+mod distant;
+pub use distant::*;
+
 use crate::{
     maths::{Normal3, Point2, Point3, Ray, Vector3},
     primitive::SurfaceInteraction,
@@ -38,4 +41,5 @@ pub trait LightT {
 pub enum Light {
     Environment(Environment),
     Point(PointLight),
+    Distant(DistantLight),
 }

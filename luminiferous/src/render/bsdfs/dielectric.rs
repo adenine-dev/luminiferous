@@ -10,7 +10,7 @@ use super::{
     BsdfFlags, BsdfSample, BsdfT,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Dielectric {
     eta: f32,
     t: Spectrum,

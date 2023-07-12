@@ -8,7 +8,7 @@ use crate::{
 
 use super::MaterialT;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct DirectMaterial {
     bsdf: Bsdf,
 }

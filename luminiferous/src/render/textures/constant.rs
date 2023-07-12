@@ -4,7 +4,7 @@ use crate::{maths::Point2, primitive::SurfaceInteraction, spectra::Spectrum, sta
 
 use super::{Texture, TextureT};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ConstantTexture {
     value: Spectrum,
 }

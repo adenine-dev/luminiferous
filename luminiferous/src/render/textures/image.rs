@@ -10,7 +10,7 @@ use crate::{
 
 use super::{Texture, TextureT};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ImageTexture {
     pixels: Array2d<Spectrum>,
 }

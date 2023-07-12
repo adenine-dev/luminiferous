@@ -26,7 +26,7 @@ pub trait TextureT {
 }
 
 #[enum_dispatch(TextureT)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Texture {
     Constant(ConstantTexture),
     Checkerboard(CheckerboardTexture),
@@ -34,7 +34,7 @@ pub enum Texture {
     Image(ImageTexture),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct TextureMapping {
     pub transform: Transform2,
 }

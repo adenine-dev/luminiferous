@@ -7,7 +7,7 @@ mod bvh;
 pub use bvh::*;
 
 use crate::{
-    maths::Ray,
+    maths::{Bounds3, Ray},
     primitive::{Intersection, SurfaceInteraction},
 };
 
@@ -20,6 +20,8 @@ pub trait AggregateT {
 
         (i.map(|i| i.get_surface_interaction(ray)), u)
     }
+
+    fn bounds(&self) -> Bounds3;
 }
 
 #[enum_dispatch(AggregateT)]

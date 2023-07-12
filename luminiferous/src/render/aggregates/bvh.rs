@@ -361,4 +361,8 @@ impl AggregateT for Bvh {
         }
         self.intersect_node(self.nodes.len() - 1, ray, f32::INFINITY, &mut 0)
     }
+
+    fn bounds(&self) -> Bounds3 {
+        self.nodes.get(0).map(|n| n.bounds).unwrap_or_default()
+    }
 }
