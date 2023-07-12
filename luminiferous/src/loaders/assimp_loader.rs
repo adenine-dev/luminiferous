@@ -6,13 +6,14 @@ use russimp::{
     Vector3D,
 };
 
+use crate::prelude::*;
+
 use crate::{
     bsdfs::{Bsdf, Lambertian},
     cameras::{Camera, PerspectiveCamera},
     film::Film,
-    lights::{Environment, Light, PointLight},
+    lights::{Light, PointLight},
     materials::{DirectMaterial, Material},
-    maths::{Matrix4, Normal3, Point2, Point3, Transform3, Vector2, Vector3},
     media::MediumInterface,
     rfilters::{RFilter, TentFilter},
     scene::SceneBuilder,
@@ -21,7 +22,7 @@ use crate::{
     textures::{ConstantTexture, Texture},
 };
 
-use super::{Loader, SceneCreationParams, SceneResult};
+use super::{Loader, SceneCreationParams};
 
 // loads a file using assimp
 pub struct AssimpLoader {}
@@ -32,9 +33,10 @@ impl AssimpLoader {}
 
 pub(crate) fn shapes_from_russimp_mesh(mesh: &Mesh) -> Vec<Shape> {
     if (mesh.primitive_types & PrimitiveType::Triangle) != PrimitiveType::Triangle as u32 {
-        println!(
-            "[WARN]: mesh '{}' is non triangular and won't be loaded, it is {}",
-            mesh.name, mesh.primitive_types
+        warnln!(
+            "mesh '{}' is non triangular and won't be loaded, it is {}.",
+            mesh.name,
+            mesh.primitive_types
         );
         return vec![];
     }
@@ -44,8 +46,8 @@ pub(crate) fn shapes_from_russimp_mesh(mesh: &Mesh) -> Vec<Shape> {
     let bad_normals = |n: &Vector3D| !(n.x.is_normal() && n.x.is_normal() && n.x.is_normal());
 
     if mesh.normals.iter().any(bad_normals) {
-        println!(
-            "[WARN]: mesh '{}' has invalid normals, shading flat.",
+        warnln!(
+            "mesh '{}' has invalid normals, some or all will be shaded flat.",
             mesh.name
         );
     }
@@ -160,11 +162,11 @@ impl Loader for AssimpLoader {
             )));
 
             if cam.aspect != 0.0 && cam.aspect != params.extent.x as f32 / params.extent.y as f32 {
-                println!("[WARN]: camera has different aspect ratio than expected extent (expected: {}, actual: {})", cam.aspect, params.extent.x as f32 / params.extent.y as f32);
+                warnln!("Camera `{}` has different aspect ratio than expected extent (expected: {}, actual: {})", cam.name, cam.aspect, params.extent.x as f32 / params.extent.y as f32);
             }
 
             if imp_scene.cameras.len() > 1 {
-                println!("[WARN]: multiple cameras defined in scene using first one.");
+                warnln!("Multiple cameras defined in scene using `{}`", cam.name);
             }
         }
 
@@ -181,18 +183,16 @@ impl Loader for AssimpLoader {
                         ),
                     )));
                 }
-                _ => println!(
-                    "[WARN]: light '{}' is not a supported type of light.",
-                    light.name
-                ),
+                _ => warnln!("Light '{}' is not a supported type of light.", light.name),
             }
         }
 
         for mesh in imp_scene.meshes {
             if (mesh.primitive_types & PrimitiveType::Triangle) != PrimitiveType::Triangle as u32 {
-                println!(
-                    "[WARN]: mesh '{}' is non triangular and won't be loaded, it is {}",
-                    mesh.name, mesh.primitive_types
+                warnln!(
+                    "mesh `{}` is non triangular and won't be loaded, it is {}",
+                    mesh.name,
+                    mesh.primitive_types
                 );
                 continue;
             }
@@ -205,10 +205,7 @@ impl Loader for AssimpLoader {
                 .any(|n| !(n.x.is_normal() && n.x.is_normal() && n.x.is_normal()));
 
             if bad_normals {
-                println!(
-                    "[WARN]: mesh '{}' has invalid normals, shading flat.",
-                    mesh.name
-                );
+                warnln!("mesh `{}` has invalid normals, shading flat.", mesh.name);
             }
 
             // let material = &imp_scene.materials[mesh.material_index as usize];

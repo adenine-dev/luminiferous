@@ -1,4 +1,5 @@
-use crate::{maths::Ray, phase_functions::PhaseFunction, spectra::Spectrum};
+use crate::prelude::*;
+use crate::{phase_functions::PhaseFunction, spectra::Spectrum};
 
 use super::{MediumInteraction, MediumT};
 

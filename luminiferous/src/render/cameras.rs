@@ -1,8 +1,5 @@
-use crate::{
-    film::Film,
-    maths::{Point2, Ray},
-    media::Medium,
-};
+use crate::prelude::*;
+use crate::{film::Film, media::Medium};
 
 mod perspective;
 pub use perspective::*;

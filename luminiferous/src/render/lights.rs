@@ -9,11 +9,8 @@ pub use point::*;
 mod distant;
 pub use distant::*;
 
-use crate::{
-    maths::{Normal3, Point2, Point3, Ray, Vector3},
-    primitive::SurfaceInteraction,
-    spectra::Spectrum,
-};
+use crate::prelude::*;
+use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
 
 pub struct Visibility {
     pub ray: Ray,

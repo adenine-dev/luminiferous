@@ -8,6 +8,7 @@
 use core::panic;
 use std::{collections::HashMap, fs, path::Path};
 
+use crate::prelude::*;
 use crate::{
     bsdfs::{Bsdf, Dielectric, Lambertian},
     cameras::{Camera, PerspectiveCamera},
@@ -15,7 +16,6 @@ use crate::{
     lights::{DistantLight, Environment, Light, PointLight},
     loaders::shapes_from_russimp_mesh,
     materials::{DirectMaterial, Material},
-    maths::*,
     media::MediumInterface,
     rfilters::{RFilter, TentFilter},
     scene::SceneBuilder,
@@ -204,7 +204,7 @@ impl Loader for PbrtLoader {
                                         .collect(),
                                 )
                             } else {
-                                panic!("idk line {l}, idk");
+                                panic!("bad parameter at {l}");
                             }
                         }
                         "point3" | "vector3" | "normal3" => {
@@ -223,7 +223,7 @@ impl Loader for PbrtLoader {
                                         .collect(),
                                 )
                             } else {
-                                panic!("idk line {l}, idk");
+                                panic!("bad parameter at {l}");
                             }
                         }
                         "rgb" => {
@@ -235,13 +235,13 @@ impl Loader for PbrtLoader {
                                     iter.next().unwrap().parse().unwrap(),
                                 ))
                             } else {
-                                panic!("sadness noises line {l}, idk");
+                                panic!("bad parameter at {l}");
                             }
                         }
                         "bool" => ParameterValue::Bool(value.parse().unwrap()),
                         "string" => ParameterValue::String(value[1..value.len() - 1].to_owned()),
                         "blackbody" | "spectrum" => {
-                            println!("[WARN] unsupported type {typ} at line {l}");
+                            warnln!("unsupported type {typ} at line {l}");
                             ParameterValue::None
                         }
                         _ => panic!("invalid type {typ} at line {l}"),
@@ -271,7 +271,7 @@ impl Loader for PbrtLoader {
                         )),
                     ))),
                     _ => {
-                        println!("[WARN]: unsupported material kind {} at line {}", $kind, $l);
+                        warnln!("unsupported material kind {} at line {}", $kind, $l);
                         None
                     }
                 }
@@ -363,7 +363,7 @@ impl Loader for PbrtLoader {
                                 None,
                             )));
                         }
-                        _ => println!("[WARN]: unsupported camera kind {kind} at line {l}"),
+                        _ => warnln!(" unsupported camera kind {kind} at line {l}"),
                     }
                 }
                 "LightSource" => {
@@ -407,7 +407,7 @@ impl Loader for PbrtLoader {
                                     .unwrap_spectrum(),
                             )));
                         }
-                        _ => println!("[WARN]: unsupported light source kind {kind} at line {l}"),
+                        _ => warnln!(" unsupported light source kind {kind} at line {l}"),
                     }
                 }
                 "Shape" => {
@@ -460,7 +460,7 @@ impl Loader for PbrtLoader {
                                 MediumInterface::none(),
                             );
                         }
-                        _ => println!("[WARN]: unsupported shape kind {kind} at line {l}"),
+                        _ => warnln!(" unsupported shape kind {kind} at line {l}"),
                     }
                 }
                 "Material" => {
@@ -488,9 +488,7 @@ impl Loader for PbrtLoader {
                             .named_materials
                             .insert(name[1..name.len() - 1].to_owned(), mat);
                     } else {
-                        println!(
-                            "[ERROR] Named material {name} at line {l} is not a valid material."
-                        );
+                        errorln!("Named material {name} at line {l} is not a valid material.");
                     }
                 }
                 "NamedMaterial" => {
@@ -499,7 +497,7 @@ impl Loader for PbrtLoader {
                     if let Some(mat) = state.named_materials.get(name) {
                         state.material = mat.clone();
                     } else {
-                        println!("[ERROR] getting unknown named material '{name}'");
+                        errorln!("getting unknown named material '{name}'");
                         dbg!(&state.named_materials);
                     }
                 }
@@ -509,7 +507,7 @@ impl Loader for PbrtLoader {
                 }
                 // "Accelerator" | "CoordinateSystem" | "CoordSysTransform" | "Include" | "Import"
                 _ => {
-                    println!("[WARN]: unsupported directive {t} at line {l}");
+                    warnln!("unsupported directive {t} at line {l}");
                     loop {
                         let t = token_iter.peek();
                         if t.is_none() {

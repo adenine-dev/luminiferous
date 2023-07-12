@@ -1,9 +1,5 @@
-use crate::{
-    maths::{face_forward, Normal3, Point2, Point3, Ray, Vector3},
-    primitive::SurfaceInteraction,
-    spectra::Spectrum,
-    stats::STATS,
-};
+use crate::prelude::*;
+use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
 
 use super::{LightSample, LightT, Visibility};
 

@@ -1,5 +1,7 @@
 use std::{path::Path, time::Instant};
 
+use crate::prelude::*;
+
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
     aggregates::{Aggregate, Bvh, Vector},
@@ -11,9 +13,8 @@ use crate::{
     integrators::{Integrator, IntegratorT, PathIntegrator},
     lights::{Environment, Light, PointLight},
     loaders::{AssimpLoader, Loader},
+    loaders::{PbrtLoader, SceneCreationParams},
     materials::{DirectMaterial, Material},
-    maths::{Matrix3, Matrix4, Point3, Transform3, UVector2, Vector2, Vector3},
-    maths::{Normal3, Point2},
     media::{HomogeneousMedium, Medium, MediumInterface},
     phase_functions::{IsotropicPhaseFunction, PhaseFunction},
     primitive::Primitive,
@@ -24,13 +25,8 @@ use crate::{
     shapes::Triangle,
     shapes::{Shape, Sphere},
     spectra::{Spectrum, SpectrumT},
-    stats::STATS,
     textures::ImageTexture,
     textures::{CheckerboardTexture, ConstantTexture, Texture, TextureMapping, UvTexture},
-};
-use crate::{
-    loaders::{PbrtLoader, SceneCreationParams},
-    maths::UExtent2,
 };
 
 pub struct Context {
@@ -46,7 +42,7 @@ pub struct ContextParams {
 impl Context {
     //TODO: load scene from file
     pub fn new(params: ContextParams) -> Self {
-        println!("initializing...");
+        infoln!("initializing...");
 
         let start = Instant::now();
         // let (width, height) = (3840, 2160);

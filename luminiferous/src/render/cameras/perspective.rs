@@ -1,8 +1,5 @@
-use crate::{
-    film::Film,
-    maths::{warp, Matrix4, Point2, Point3, Ray, Transform3, Vector3},
-    media::Medium,
-};
+use crate::prelude::*;
+use crate::{film::Film, media::Medium};
 
 use super::{CameraSample, CameraT};
 

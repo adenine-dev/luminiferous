@@ -1,7 +1,4 @@
-use crate::{
-    maths::{max_dimension_v3, permute_v3, Bounds3, Normal3, Point2, Point3, Ray, Transform3},
-    stats::STATS,
-};
+use crate::prelude::*;
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 

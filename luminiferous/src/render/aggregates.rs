@@ -6,10 +6,8 @@ pub use vector::*;
 mod bvh;
 pub use bvh::*;
 
-use crate::{
-    maths::{Bounds3, Ray},
-    primitive::{Intersection, SurfaceInteraction},
-};
+use crate::prelude::*;
+use crate::primitive::{Intersection, SurfaceInteraction};
 
 #[enum_dispatch]
 pub trait AggregateT {

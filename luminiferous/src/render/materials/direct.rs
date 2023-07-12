@@ -1,9 +1,8 @@
+use crate::prelude::*;
 use crate::{
     bsdfs::{Bsdf, BsdfFlags, BsdfSample, BsdfT},
-    maths::{Frame3, Point2, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
-    stats::STATS,
 };
 
 use super::MaterialT;

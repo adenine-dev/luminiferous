@@ -1,4 +1,4 @@
-use crate::maths::{Point2, UPoint2};
+use crate::prelude::*;
 
 use super::SamplerT;
 

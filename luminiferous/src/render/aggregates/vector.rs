@@ -1,10 +1,7 @@
 use std::mem::size_of;
 
-use crate::{
-    maths::{Bounds3, Ray},
-    primitive::{Intersection, Primitive},
-    stats::STATS,
-};
+use crate::prelude::*;
+use crate::primitive::{Intersection, Primitive};
 
 use super::AggregateT;
 

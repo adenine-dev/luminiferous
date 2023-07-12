@@ -1,7 +1,6 @@
-use crate::{
-    maths::{Point2, Vector3},
-    media::MediumInteraction,
-};
+use crate::prelude::*;
+
+use crate::media::MediumInteraction;
 
 use enum_dispatch::enum_dispatch;
 

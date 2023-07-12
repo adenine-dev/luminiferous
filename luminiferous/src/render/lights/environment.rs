@@ -1,8 +1,7 @@
+use crate::prelude::*;
 use crate::{
-    maths::{face_forward, warp, Frame3, Normal3, Point2, Point3, Ray, Vector2, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
-    stats::STATS,
     textures::{Texture, TextureT},
 };
 

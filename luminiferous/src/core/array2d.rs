@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use crate::maths::*;
+use crate::prelude::*;
 
 /// Static size, heap allocated, 2d array. The underlying data is stored row wise. Indexes `container[y][x]`.
 ///

@@ -3,11 +3,8 @@ use enum_dispatch::enum_dispatch;
 mod homogeneous;
 pub use homogeneous::*;
 
-use crate::{
-    maths::{Point3, Ray, Vector3},
-    phase_functions::PhaseFunction,
-    spectra::Spectrum,
-};
+use crate::prelude::*;
+use crate::{phase_functions::PhaseFunction, spectra::Spectrum};
 
 pub struct MediumInteraction {
     pub p: Point3,

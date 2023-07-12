@@ -1,6 +1,6 @@
-use crate::maths::Vector2;
-
 use enum_dispatch::enum_dispatch;
+
+use crate::prelude::*;
 
 mod box_filter;
 pub use box_filter::*;

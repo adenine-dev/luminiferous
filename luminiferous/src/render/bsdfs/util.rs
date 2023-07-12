@@ -1,4 +1,4 @@
-use crate::maths::Vector3;
+use crate::prelude::*;
 
 pub(crate) fn reflect(v: Vector3) -> Vector3 {
     v * Vector3::new(-1.0, -1.0, 1.0)

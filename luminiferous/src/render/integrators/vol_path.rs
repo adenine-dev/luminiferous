@@ -2,6 +2,7 @@ use std::path::Path;
 
 use rayon::prelude::*;
 
+use crate::prelude::*;
 use crate::{
     bsdfs::BsdfFlags,
     cameras::{CameraSample, CameraT},
@@ -9,13 +10,11 @@ use crate::{
     film::TileProvider,
     lights::LightT,
     materials::MaterialT,
-    maths::*,
     media::MediumT,
     phase_functions::PhaseFunctionT,
     samplers::{Sampler, SamplerT},
     scene::Scene,
     spectra::{Spectrum, SpectrumT},
-    stats::STATS,
 };
 
 use super::IntegratorT;
@@ -177,6 +176,6 @@ impl IntegratorT for VolPathIntegrator {
 
         let path = Path::new("output");
         film.develop(path);
-        println!("Successfully wrote output to {path:?}");
+        infoln!("Successfully wrote output to {path:?}");
     }
 }

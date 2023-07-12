@@ -1,7 +1,7 @@
 // broadly adapted from:
 // https://graphics.pixar.com/library/MultiJitteredSampling/paper.pdf
 
-use crate::maths::{Point2, UPoint2, Vector2};
+use crate::prelude::*;
 
 use super::SamplerT;
 
@@ -21,7 +21,7 @@ impl StratifiedSampler {
         if !spp.is_power_of_two() {
             let old = spp;
             spp = spp.next_power_of_two();
-            println!("sample count must be a power of 2, rounding from {old} to {spp}");
+            warnln!("When using the stratified sampler, spp must be a power of 2, rounding from {old} to {spp}");
         }
 
         Self {

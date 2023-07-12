@@ -1,6 +1,7 @@
 use std::ops::Mul;
 
-use crate::{maths::*, primitive::SurfaceInteraction};
+use crate::prelude::*;
+use crate::primitive::SurfaceInteraction;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Transform3 {

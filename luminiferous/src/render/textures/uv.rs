@@ -1,10 +1,9 @@
 use std::mem::size_of;
 
+use crate::prelude::*;
 use crate::{
-    maths::Point2,
     primitive::SurfaceInteraction,
     spectra::{Spectrum, SpectrumT},
-    stats::STATS,
 };
 
 use super::{Texture, TextureT};

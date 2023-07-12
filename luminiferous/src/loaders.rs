@@ -6,10 +6,9 @@ pub use assimp_loader::*;
 mod pbrt_loader;
 pub use pbrt_loader::*;
 
-use crate::{
-    maths::UExtent2,
-    scene::{Scene, SceneBuilder},
-};
+use crate::prelude::*;
+
+use crate::scene::{Scene, SceneBuilder};
 
 pub type SceneResult = Result<Scene, Box<dyn Error>>;
 

@@ -8,9 +8,9 @@ use std::{
 use atomic_float::AtomicF32;
 use rayon::{iter::plumbing::*, prelude::*};
 
+use crate::prelude::*;
 use crate::{
     core::{Array2d, TevReporter},
-    maths::{Point2, UBounds2, UExtent2, UPoint2, UVector2, Vector2},
     rfilters::{RFilter, RFilterT},
     spectra::{Spectrum, SpectrumT},
     stats::STATS,

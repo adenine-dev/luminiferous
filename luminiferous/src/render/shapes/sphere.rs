@@ -1,7 +1,4 @@
-use crate::{
-    maths::{Bounds3, Point2, Ray, Vector3},
-    stats::STATS,
-};
+use crate::prelude::*;
 
 use super::{ShapeInteraction, ShapeIntersection, ShapeT};
 

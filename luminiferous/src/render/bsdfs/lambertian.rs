@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use crate::{
-    maths::{warp, Point2, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
     stats::STATS,

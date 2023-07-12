@@ -1,7 +1,6 @@
-use crate::{
-    maths::{warp, Point2, Vector3},
-    media::MediumInteraction,
-};
+use crate::prelude::*;
+
+use crate::media::MediumInteraction;
 
 use super::{PhaseFunctionSample, PhaseFunctionT};
 

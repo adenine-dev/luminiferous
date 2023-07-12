@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use crate::{
-    maths::{face_forward, Bounds3, Normal3, Point2, Point3, Ray, Transform3, Vector3},
     media::{Medium, MediumInterface},
     shapes::{Shape, ShapeIntersection, ShapeT},
 };

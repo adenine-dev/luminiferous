@@ -6,7 +6,7 @@ pub use random::*;
 mod stratified;
 pub use stratified::*;
 
-use crate::maths::{Point2, UPoint2};
+use crate::prelude::*;
 
 #[enum_dispatch]
 pub trait SamplerT {

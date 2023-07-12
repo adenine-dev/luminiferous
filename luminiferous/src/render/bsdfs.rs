@@ -1,11 +1,8 @@
 use bitflags::bitflags;
 use enum_dispatch::enum_dispatch;
 
-use crate::{
-    maths::{Point2, Vector3},
-    primitive::SurfaceInteraction,
-    spectra::Spectrum,
-};
+use crate::prelude::*;
+use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
 
 mod lambertian;
 pub use lambertian::*;

@@ -1,11 +1,10 @@
 use std::{mem::size_of, path::Path};
 
+use crate::prelude::*;
 use crate::{
     core::Array2d,
-    maths::{Point2, UExtent2, UVector2},
     primitive::SurfaceInteraction,
     spectra::{Spectrum, SpectrumT},
-    stats::STATS,
 };
 
 use super::{Texture, TextureT};

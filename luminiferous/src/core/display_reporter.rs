@@ -2,7 +2,7 @@ use std::{net::TcpStream, time::Instant};
 
 use tev_client::{PacketCreateImage, PacketUpdateImage, TevClient};
 
-use crate::maths::{UBounds2, UExtent2};
+use crate::prelude::*;
 
 //TODO: tev_client doesn't do vector graphics so maybe this should be custom and show recently updated tiles or something shrug.
 //TODO: don't send the entire pixel buffer every time
@@ -43,16 +43,13 @@ impl TevReporter {
         let client = TcpStream::connect("127.0.0.1:14158").map(TevClient::wrap);
 
         if client.is_err() {
-            println!(
-                "[WARN]: Display server not connected: {}",
-                client.unwrap_err()
-            );
+            warnln!("Display server not connected: {}", client.unwrap_err());
 
             return error_self;
         }
 
         let mut client = client.unwrap();
-        println!("[INFO]: Display server connected");
+        infoln!("Display server connected");
         if let Err(err) = client.send(PacketCreateImage {
             image_name: "[Luminiferous Render]",
             grab_focus: false,
@@ -60,7 +57,7 @@ impl TevReporter {
             height: extent.y,
             channel_names: &["R", "G", "B"],
         }) {
-            println!("[WARN]: Display server disconnected on image create: {err}");
+            warnln!("Display server disconnected on image create: {err}");
             return error_self;
         }
 
@@ -112,9 +109,7 @@ impl TevReporter {
                     height: self.extent.y,
                     data: &self.pixels,
                 }) {
-                    println!(
-                        "[WARN]: Display server disconnected: {err}. No more packets will be sent."
-                    );
+                    errorln!("Display server disconnected: {err}. No more packets will be sent.");
                     self.client = None;
                 }
             }

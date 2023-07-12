@@ -1,17 +1,15 @@
 use std::{collections::HashMap, path::Path};
 
+use crate::prelude::*;
 use crate::{
     aggregates::{Aggregate, AggregateT, Bvh},
-    bsdfs::BsdfFlags,
     cameras::Camera,
-    lights::{Light, LightT, Visibility},
+    lights::{Light, Visibility},
     loaders::{Loader, SceneCreationParams},
-    materials::{Material, MaterialT},
-    maths::{Bounds3, Ray, Transform3},
+    materials::Material,
     media::MediumInterface,
     primitive::{Primitive, SurfaceInteraction},
     shapes::Shape,
-    stats::STATS,
 };
 
 pub struct Scene {
@@ -91,7 +89,7 @@ impl SceneBuilder {
 
     pub fn camera(&mut self, camera: Camera) -> &mut Self {
         if self.camera.is_some() {
-            println!("[WARN]: replacing scene camera.");
+            warnln!("replacing scene camera.");
         }
 
         self.camera = Some(camera);
@@ -155,7 +153,7 @@ impl SceneBuilder {
     pub fn build(self) -> Option<Scene> {
         let aggregate = Aggregate::Bvh(Bvh::new(self.primitives));
         if self.camera.is_none() {
-            println!("[WARN]: attempting to build scene without camera.");
+            warnln!("attempting to build scene without camera.");
         }
         Some(Scene::new(
             self.lights,

@@ -3,9 +3,9 @@ use enum_dispatch::enum_dispatch;
 mod direct;
 pub use direct::*;
 
+use crate::prelude::*;
 use crate::{
     bsdfs::{BsdfFlags, BsdfSample},
-    maths::{Point2, Vector3},
     primitive::SurfaceInteraction,
     spectra::Spectrum,
 };

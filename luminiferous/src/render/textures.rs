@@ -12,11 +12,8 @@ pub use uv::*;
 mod image;
 pub use image::*;
 
-use crate::{
-    maths::{Matrix3, Point2, Transform2},
-    primitive::SurfaceInteraction,
-    spectra::Spectrum,
-};
+use crate::prelude::*;
+use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
 
 #[enum_dispatch]
 pub trait TextureT {

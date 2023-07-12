@@ -1,5 +1,5 @@
+use crate::prelude::*;
 use crate::{
-    maths::{Point2, Vector3},
     primitive::SurfaceInteraction,
     spectra::{Spectrum, SpectrumT},
 };
@@ -12,6 +12,7 @@ pub struct NullBsdf {}
 
 impl NullBsdf {
     pub fn new() -> Self {
+        STATS.bsdfs_created.inc();
         Self {}
     }
 }
