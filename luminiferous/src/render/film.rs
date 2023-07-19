@@ -182,11 +182,7 @@ impl Film {
 
         if self.tev_reporter.lock().is_ok_and(|r| r.is_connected()) {
             if let Ok(mut r) = self.tev_reporter.lock() {
-                r.update_pixels(
-                    UBounds2::new(UPoint2::splat(0), UPoint2::splat(0)),
-                    vec![],
-                    true,
-                );
+                r.clear_updates();
             }
         }
 

@@ -50,9 +50,9 @@ impl Context {
         infoln!("initializing...");
 
         let start = Instant::now();
-        let (width, height) = (3840, 2160);
+        // let (width, height) = (3840, 2160);
         // let (width, height) = (1600, 900);
-        // let (width, height) = (1280, 720);
+        let (width, height) = (1280, 720);
         // let (width, height) = (800, 450);
         // let (width, height) = (800, 800);
         // let (width, height) = (1200, 1200);
