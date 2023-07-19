@@ -10,6 +10,8 @@ use crate::{
     film::TileProvider,
     lights::LightT,
     materials::MaterialT,
+    media::MediumT,
+    phase_functions::PhaseFunctionT,
     samplers::{Sampler, SamplerT},
     scene::Scene,
     spectra::{Spectrum, SpectrumT},
@@ -20,13 +22,15 @@ use super::IntegratorT;
 pub struct PathIntegrator {
     sampler: Sampler,
     max_depth: u32,
+    volumetric: bool,
 }
 
 impl PathIntegrator {
-    pub fn new(sampler: Sampler, depth: u32) -> Self {
+    pub fn new(sampler: Sampler, depth: u32, volumetric: bool) -> Self {
         Self {
             sampler,
             max_depth: depth,
+            volumetric,
         }
     }
 }
@@ -53,7 +57,7 @@ impl IntegratorT for PathIntegrator {
 
                         let mut pixel_sampler = self.sampler.fork((y * extent.x + x) as u64);
                         pixel_sampler.begin_pixel(UPoint2::new(x, y));
-                        'outer: while pixel_sampler.advance() {
+                        while pixel_sampler.advance() {
                             let offset = pixel_sampler.next_2d() - Vector2::splat(0.5);
                             let p = Point2::new(x as f32, y as f32) + offset;
                             let tp = Point2::new(tx as f32, ty as f32) + offset;
@@ -66,32 +70,44 @@ impl IntegratorT for PathIntegrator {
 
                             let mut surface_reflectance = Spectrum::from_rgb(1.0, 1.0, 1.0);
                             let mut contributed = Spectrum::zero();
+                            let mut medium = scene.camera.medium();
 
-                            let mut i = 1;
+                            let mut depth = 1;
                             let mut _num_tests = 0;
 
-                            while i < self.max_depth {
-                                let (interaction, _n) = scene.intersect(ray);
-                                // _num_tests += _n;
-                                // tile.apply_sample(
-                                //     tp,
-                                //     Spectrum::from_rgb(
-                                //         _num_tests as f32,
-                                //         _num_tests as f32,
-                                //         _num_tests as f32,
-                                //     ),
-                                // );
-                                // break;
+                            while depth < self.max_depth {
+                                let (interaction, n) = scene.intersect(ray);
+                                _num_tests += n;
 
-                                if let Some(interaction) = interaction {
-                                    // let n = 0.5 * (interaction.n + 1.0);
-                                    // let n = interaction.n;
-                                    // tile.apply_sample(tp, Spectrum::from_rgb(n.x, n.y, n.z));
-                                    // let uv = interaction.uv;
-                                    // tile.apply_sample(tp, Spectrum::from_rgb(uv.x, uv.y, 0.0));
+                                let mi = if let Some(medium) = &medium && self.volumetric {
+                                    medium.sample(
+                                        ray,
+                                        interaction.as_ref().map(|i| i.t).unwrap_or(1e7),
+                                        pixel_sampler.next_1d(),
+                                    )
+                                } else {
+                                    None
+                                };
 
-                                    // break 'outer;
+                                if let Some((mi, l)) = mi {
+                                    if let Some(pf) = &mi.phase_function {
+                                        for light in scene.lights.iter() {
+                                            let emitted =
+                                                light.sample(mi.p, mi.wi, pixel_sampler.next_2d());
 
+                                            if scene.test_visibility(emitted.visibility) {
+                                                let f = pf.eval(&mi, emitted.wo, ray.d);
+                                                contributed += surface_reflectance
+                                                    * f
+                                                    * emitted.li
+                                                    * emitted.wo.dot(mi.wi).abs();
+                                            }
+                                        }
+                                        surface_reflectance *= l;
+                                        let sample = pf.sample(pixel_sampler.next_2d());
+                                        ray = Ray::new(mi.p, sample.wo);
+                                    }
+                                } else if let Some(interaction) = interaction {
                                     if let Some(area_light_index) =
                                         interaction.primitive.area_light_index
                                     {
@@ -109,14 +125,6 @@ impl IntegratorT for PathIntegrator {
                                         pixel_sampler.next_2d(),
                                     );
 
-                                    // let frame = crate::materials::make_frame(&interaction);
-                                    // contributed =
-                                    //     Spectrum::from_rgb(frame.n.x, frame.n.y, frame.n.z);
-                                    // break;
-                                    // contributed =
-                                    //     Spectrum::from_rgb(sample.wo.x, sample.wo.y, sample.wo.z);
-                                    // break;
-
                                     let l = sample.spectrum;
                                     if l.has_nan() {
                                         break;
@@ -128,18 +136,6 @@ impl IntegratorT for PathIntegrator {
                                             let emitted = light
                                                 .sample_li(&interaction, pixel_sampler.next_2d());
 
-                                            // let n = 0.5 * (emitted.wo + 1.0);
-                                            // contributed = Spectrum::from_rgb(n.x, n.y, n.z);
-                                            // break 'outer;
-
-                                            // contributed = emitted.li;
-                                            // Spectrum::from_rgb(
-                                            //     emitted.visibility.ray.d.x,
-                                            //     emitted.visibility.ray.d.y,
-                                            //     emitted.visibility.ray.d.z,
-                                            // );
-                                            // break 'outer;
-
                                             if scene.test_visibility(emitted.visibility) {
                                                 let f =
                                                     material.eval(&interaction, emitted.wo, ray.d);
@@ -147,13 +143,7 @@ impl IntegratorT for PathIntegrator {
                                                     * f
                                                     * emitted.li
                                                     * emitted.wo.dot(interaction.n).abs();
-                                                // contributed = Spectrum::from_rgb(0.0, 0.0, 1.0);
                                             }
-                                            // else {
-                                            //     contributed = Spectrum::from_rgb(1.0, 0.0, 0.0);
-                                            // }
-
-                                            // break 'outer;
                                         }
                                     }
                                     surface_reflectance *= l;
@@ -162,7 +152,15 @@ impl IntegratorT for PathIntegrator {
                                         break;
                                     }
 
-                                    ray = interaction.spawn_ray(sample.wo);
+                                    if sample.sampled != BsdfFlags::Null {
+                                        ray = interaction.spawn_ray(sample.wo);
+                                    } else {
+                                        depth -= 1;
+                                        ray = Ray::new(interaction.p + ray.d * 1e-5, ray.d);
+                                    }
+                                    medium = interaction.target_medium(sample.wo);
+
+                                    // ray = interaction.spawn_ray(sample.wo);
                                 } else {
                                     for light in scene.lights.iter() {
                                         if light.is_environment() {
@@ -172,10 +170,10 @@ impl IntegratorT for PathIntegrator {
 
                                     break;
                                 }
-                                i += 1;
+                                depth += 1;
                             }
 
-                            STATS.path_length.add(i as i64);
+                            STATS.path_length.add(depth as i64);
 
                             if contributed.is_black() {
                                 STATS.zero_radiance_paths.inc();

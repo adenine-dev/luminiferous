@@ -17,8 +17,6 @@ impl Environment {
         STATS.lights_created.inc();
         let extent = radiance.extent();
 
-        let mut ys = vec![0.0; extent.x as usize * extent.y as usize];
-
         Self { radiance }
     }
 }

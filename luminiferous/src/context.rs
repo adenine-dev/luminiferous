@@ -1,6 +1,5 @@
 use std::{path::Path, time::Instant};
 
-use crate::loaders::shapes_from_russimp_mesh;
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
     aggregates::{Aggregate, Bvh, Vector},
@@ -10,7 +9,6 @@ use crate::{
     cameras::{Camera, PerspectiveCamera},
     core::Array2d,
     film::Film,
-    integrators::VolPathIntegrator,
     integrators::{Integrator, IntegratorT, PathIntegrator},
     lights::{AreaLight, DistantLight},
     lights::{Environment, Light, PointLight},
@@ -113,7 +111,7 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 5 {
+        let scene = match 1 {
             // sphere pyramid
             0 => {
                 let mut scene_builder = SceneBuilder::new();
@@ -239,19 +237,15 @@ impl Context {
                 load_obj(
                     &mut sb,
                     "assets/Flamehorn Wyrmling/BabyDragon_C_v01_reduced.obj",
-                    // Material::Direct(DirectMaterial::new(Bsdf::Conductor(Conductor::new(
-                    //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
-                    //         0.8, 0.8, 0.8,
-                    //     ))),
-                    // )))),
-                    Material::Direct(DirectMaterial::new(Bsdf::Measured(
-                        MeasuredBsdf::load_from_file(Path::new(
-                            "assets/brdfs/vch_dragon_eye_red_rgb.bsdf",
-                        ))
-                        .unwrap(),
-                    ))),
+                    Material::Direct(DirectMaterial::new(Bsdf::Null(NullBsdf::new()))),
                     None,
-                    MediumInterface::none(),
+                    MediumInterface::new(
+                        Some(Medium::Homogeneous(HomogeneousMedium::new(
+                            PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                            Spectrum::from_rgb(0.9, 0.6, 0.6),
+                        ))),
+                        None,
+                    ),
                 );
                 load_obj(
                     &mut sb,
@@ -266,13 +260,13 @@ impl Context {
                 );
 
                 sb.primitive(
-                    Shape::Sphere(Sphere::new(50000.0)),
+                    Shape::Sphere(Sphere::new(60000.0)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
                         SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
                             0.5, 0.5, 0.5,
                         ))),
                     )))),
-                    Some(Transform3::translate(Vector3::new(0.0, -50000.5, 0.0))),
+                    Some(Transform3::translate(Vector3::new(0.0, -60000.5, 0.0))),
                     MediumInterface::none(),
                 );
 
@@ -463,11 +457,6 @@ impl Context {
                 load_obj(
                     &mut sb,
                     "assets/scenes/vintage_oil_lamps/floor.obj",
-                    // Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                    //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
-                    //         0.8, 0.8, 0.8,
-                    //     ))),
-                    // )))),
                     Material::Direct(DirectMaterial::new(Bsdf::Measured(
                         MeasuredBsdf::load_from_file(Path::new(
                             "assets/brdfs/paper_white_rgb.bsdf",
@@ -545,31 +534,7 @@ impl Context {
                     SpectralTexture::Image(ImageTexture::from_path(Path::new(
                         "assets/material_test/christmas_photo_studio_07.exr",
                     ))),
-                    // SpectralTexture::Constant(ConstantTexture::new(Spectrum::splat(0.1))),
                 )));
-
-                // sb.light(Light::Distant(DistantLight::new(
-                //     Vector3::new(-1.0, 1.0, 1.0).normalize(),
-                //     Spectrum::splat(4.0),
-                // )));
-
-                // sb.light(Light::Point(PointLight::new(
-                //     Point3::new(-20.0, 5.0, 10.0).normalize(),
-                //     Spectrum::splat(4.0),
-                // )));
-
-                // sb.area_light(AreaLight::new(
-                //     Primitive::new(
-                //         Shape::Sphere(Sphere::new(180.0)),
-                //         0,
-                //         None,
-                //         Some(
-                //             Transform3::translate(Vector3::new(180.0, 180.0, 180.0)), // * Transform3::scale(Point3::new(0.001, 1.0, 1.0)),
-                //         ),
-                //         MediumInterface::none(),
-                //     ),
-                //     Spectrum::splat(1.5),
-                // ));
 
                 sb.build()
             }
@@ -582,8 +547,8 @@ impl Context {
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
         // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
-        const MAX_BOUNCES: u32 = 10;
-        let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES));
+        const MAX_BOUNCES: u32 = 1000;
+        let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES, true));
 
         let duration = start.elapsed();
         let ctx = Self { scene, integrator };
