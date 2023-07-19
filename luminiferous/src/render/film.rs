@@ -284,7 +284,7 @@ impl TileProvider {
         let num_tiles = (extent.as_vec2() / tile_size.as_vec2()).ceil().as_uvec2();
         Self {
             range: 0..((num_tiles.x.max(num_tiles.y) + 1).pow(2)),
-
+            // range: 0..(num_tiles.x * num_tiles.y),
             tile_size,
             extent,
         }
@@ -297,16 +297,16 @@ impl TileProvider {
 
         let p = |x| {
             (
-                (1..=x).map(|n: u32| k(n as f32).cos()).sum::<f32>(),
+                (1..=x).map(|n| k(n as f32).cos()).sum::<f32>(),
                 (1..=x).map(|n| k(n as f32).sin()).sum::<f32>() - 0.5,
             )
         };
         let (x, y) = p(n);
 
-        let min = (Point2::new(x, y) * tile_size.as_vec2() + extent.as_vec2() / 2.0)
-            .round()
-            .clamp(Point2::ZERO, extent.as_vec2())
-            .as_uvec2();
+        let min = (Point2::new(x, y) * tile_size.as_vec2() + extent.as_vec2() / 2.0).round();
+        let max = min + tile_size.as_vec2();
+        let min = min.clamp(Point2::ZERO, extent.as_vec2()).as_uvec2();
+        let max = max.clamp(Point2::ZERO, extent.as_vec2()).as_uvec2();
 
         // for typical scanlines
         // let x = (n * tile_size.x) % extent.x;
@@ -314,7 +314,6 @@ impl TileProvider {
 
         // let min = UPoint2::new(x, y);
         // let max = UPoint2::new(x + tile_size.x, y + tile_size.y).min(extent);
-        let max = (min + tile_size).min(extent);
 
         let ret = UBounds2::new(min, max);
 

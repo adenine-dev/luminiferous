@@ -3,18 +3,18 @@ use crate::{
     primitive::SurfaceInteraction,
     spectra::{Spectrum, SpectrumT},
     stats::STATS,
-    textures::{Texture, TextureT},
+    textures::{SpectralTexture, TextureT},
 };
 
 use super::{util::reflect, BsdfFlags, BsdfSample, BsdfT};
 
 #[derive(Debug, Clone)]
 pub struct Conductor {
-    reflectance: Texture,
+    reflectance: SpectralTexture,
 }
 
 impl Conductor {
-    pub fn new(reflectance: Texture) -> Self {
+    pub fn new(reflectance: SpectralTexture) -> Self {
         STATS.bsdfs_created.inc();
 
         Self { reflectance }
@@ -33,6 +33,7 @@ impl BsdfT for Conductor {
         let reflectance = self.reflectance.eval(si);
         BsdfSample {
             wo,
+            sampled: self.flags(),
             spectrum: reflectance,
         }
     }

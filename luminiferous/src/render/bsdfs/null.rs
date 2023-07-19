@@ -29,6 +29,7 @@ impl BsdfT for NullBsdf {
     fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, _u: Point2) -> BsdfSample {
         BsdfSample {
             wo: -wi,
+            sampled: self.flags(),
             spectrum: Spectrum::from_rgb(1.0, 1.0, 1.0),
         }
     }

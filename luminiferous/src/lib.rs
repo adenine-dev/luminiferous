@@ -1,6 +1,8 @@
 #![feature(let_chains)]
 #![feature(iter_partition_in_place)]
 #![feature(iter_array_chunks)]
+#![feature(associated_type_defaults)]
+#![feature(generic_const_exprs)]
 
 pub mod core;
 pub mod loaders;

@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::shapes::ShapeSample;
 use crate::{
     media::{Medium, MediumInterface},
     shapes::{Shape, ShapeIntersection, ShapeT},
@@ -8,6 +9,7 @@ use crate::{
 pub struct Primitive {
     pub shape: Shape,
     pub material_index: usize,
+    pub area_light_index: Option<usize>,
     pub world_to_object: Option<Transform3>,
     pub medium_interface: MediumInterface,
 }
@@ -23,9 +25,35 @@ pub struct SurfaceInteraction<'a> {
     pub p: Point3,
     pub n: Normal3,
     pub uv: Point2,
+    pub dp_du: Vector3,
+    pub dp_dv: Vector3,
+    // pub shading_frame: Frame3,
 }
 
 impl<'a> SurfaceInteraction<'a> {
+    pub fn new(
+        primitive: &'a Primitive,
+        t: f32,
+        p: Point3,
+        n: Normal3,
+        uv: Point2,
+        dp_du: Vector3,
+        dp_dv: Vector3,
+    ) -> Self {
+        // let shading_frame = Frame3::new(n);
+
+        SurfaceInteraction {
+            primitive,
+            t,
+            p,
+            n,
+            uv,
+            dp_du,
+            dp_dv,
+            // shading_frame,
+        }
+    }
+
     pub fn spawn_ray(&self, d: Vector3) -> Ray {
         Ray::new(self.p + face_forward(self.n, d) * 1e-6, d)
     }
@@ -43,6 +71,7 @@ impl<'a> Primitive {
     pub fn new(
         mut shape: Shape,
         material_index: usize,
+        area_light_index: Option<usize>,
         mut world_to_object: Option<Transform3>,
         medium_interface: MediumInterface,
     ) -> Self {
@@ -55,6 +84,7 @@ impl<'a> Primitive {
         Self {
             shape,
             material_index,
+            area_light_index,
             world_to_object,
             medium_interface,
         }
@@ -83,6 +113,21 @@ impl<'a> Primitive {
         }
         bounds
     }
+
+    pub fn area(&self) -> f32 {
+        //TODO: transforms?
+        self.shape.area()
+    }
+
+    pub fn sample(&self, u: Point2) -> ShapeSample {
+        let mut s = self.shape.sample(u);
+        if let Some(world_to_object) = self.world_to_object {
+            s.p = world_to_object.transform_point(s.p);
+            s.n = world_to_object.transform_normal(s.n);
+        }
+
+        s
+    }
 }
 
 impl<'a> Intersection<'a> {
@@ -104,6 +149,8 @@ impl<'a> Intersection<'a> {
             p: shape_interaction.p,
             n: shape_interaction.n,
             uv: shape_interaction.uv,
+            dp_du: shape_interaction.dp_du,
+            dp_dv: shape_interaction.dp_dv,
         };
 
         if let Some(transform) = self.primitive.world_to_object {

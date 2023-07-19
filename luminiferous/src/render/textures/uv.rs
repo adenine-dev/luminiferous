@@ -6,7 +6,7 @@ use crate::{
     spectra::{Spectrum, SpectrumT},
 };
 
-use super::{Texture, TextureT};
+use super::{SpectralTexture, TextureT};
 
 #[derive(Debug, Clone, Default)]
 pub struct UvTexture {}
@@ -14,22 +14,28 @@ pub struct UvTexture {}
 impl UvTexture {
     pub fn new() -> Self {
         STATS.textures_created.inc();
-        STATS.texture_memory.add(size_of::<Texture>() as u64);
+        STATS
+            .texture_memory
+            .add(size_of::<SpectralTexture>() as u64);
 
         Self {}
     }
 }
 
-impl TextureT for UvTexture {
+impl TextureT<Spectrum> for UvTexture {
     fn eval(&self, si: &SurfaceInteraction) -> Spectrum {
-        Spectrum::from_rgb(si.uv[0], si.uv[1], 0.0)
+        // Spectrum::from_rgb(si.uv[0], si.uv[1], 0.0)
 
         //TODO: debug texture that does more?
-        // let n = (si.n + Vector3::splat(1.0)) / 2.0;
-        // Spectrum::from_rgb(n.x, n.y, n.z)
+        let n = (si.n + Vector3::splat(1.0)) / 2.0;
+        Spectrum::from_rgb(n.x, n.y, n.z)
     }
 
     fn eval_uv(&self, uv: Point2) -> Spectrum {
         Spectrum::from_rgb(uv[0], uv[1], 0.0)
+    }
+
+    fn extent(&self) -> UExtent2 {
+        UExtent2::splat(1)
     }
 }

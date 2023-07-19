@@ -53,7 +53,7 @@ impl IntegratorT for PathIntegrator {
 
                         let mut pixel_sampler = self.sampler.fork((y * extent.x + x) as u64);
                         pixel_sampler.begin_pixel(UPoint2::new(x, y));
-                        while pixel_sampler.advance() {
+                        'outer: while pixel_sampler.advance() {
                             let offset = pixel_sampler.next_2d() - Vector2::splat(0.5);
                             let p = Point2::new(x as f32, y as f32) + offset;
                             let tp = Point2::new(tx as f32, ty as f32) + offset;
@@ -69,6 +69,7 @@ impl IntegratorT for PathIntegrator {
 
                             let mut i = 1;
                             let mut _num_tests = 0;
+
                             while i < self.max_depth {
                                 let (interaction, _n) = scene.intersect(ray);
                                 // _num_tests += _n;
@@ -81,10 +82,24 @@ impl IntegratorT for PathIntegrator {
                                 //     ),
                                 // );
                                 // break;
+
                                 if let Some(interaction) = interaction {
                                     // let n = 0.5 * (interaction.n + 1.0);
+                                    // let n = interaction.n;
                                     // tile.apply_sample(tp, Spectrum::from_rgb(n.x, n.y, n.z));
-                                    // break;
+                                    // let uv = interaction.uv;
+                                    // tile.apply_sample(tp, Spectrum::from_rgb(uv.x, uv.y, 0.0));
+
+                                    // break 'outer;
+
+                                    if let Some(area_light_index) =
+                                        interaction.primitive.area_light_index
+                                    {
+                                        let l = scene.lights[area_light_index].l_e(-ray.d);
+
+                                        contributed += surface_reflectance * l;
+                                        break;
+                                    }
 
                                     let material =
                                         &scene.materials[interaction.primitive.material_index];
@@ -93,13 +108,37 @@ impl IntegratorT for PathIntegrator {
                                         &interaction,
                                         pixel_sampler.next_2d(),
                                     );
+
+                                    // let frame = crate::materials::make_frame(&interaction);
+                                    // contributed =
+                                    //     Spectrum::from_rgb(frame.n.x, frame.n.y, frame.n.z);
+                                    // break;
+                                    // contributed =
+                                    //     Spectrum::from_rgb(sample.wo.x, sample.wo.y, sample.wo.z);
+                                    // break;
+
                                     let l = sample.spectrum;
-                                    if (material.bsdf_flags() & BsdfFlags::Smooth)
-                                        == BsdfFlags::Smooth
+                                    if l.has_nan() {
+                                        break;
+                                    }
+                                    if sample.sampled.contains(BsdfFlags::Smooth)
+                                        && !sample.sampled.contains(BsdfFlags::Delta)
                                     {
                                         for light in scene.lights.iter() {
                                             let emitted = light
                                                 .sample_li(&interaction, pixel_sampler.next_2d());
+
+                                            // let n = 0.5 * (emitted.wo + 1.0);
+                                            // contributed = Spectrum::from_rgb(n.x, n.y, n.z);
+                                            // break 'outer;
+
+                                            // contributed = emitted.li;
+                                            // Spectrum::from_rgb(
+                                            //     emitted.visibility.ray.d.x,
+                                            //     emitted.visibility.ray.d.y,
+                                            //     emitted.visibility.ray.d.z,
+                                            // );
+                                            // break 'outer;
 
                                             if scene.test_visibility(emitted.visibility) {
                                                 let f =
@@ -108,10 +147,15 @@ impl IntegratorT for PathIntegrator {
                                                     * f
                                                     * emitted.li
                                                     * emitted.wo.dot(interaction.n).abs();
+                                                // contributed = Spectrum::from_rgb(0.0, 0.0, 1.0);
                                             }
+                                            // else {
+                                            //     contributed = Spectrum::from_rgb(1.0, 0.0, 0.0);
+                                            // }
+
+                                            // break 'outer;
                                         }
                                     }
-
                                     surface_reflectance *= l;
 
                                     if surface_reflectance.is_black() {
@@ -119,9 +163,6 @@ impl IntegratorT for PathIntegrator {
                                     }
 
                                     ray = interaction.spawn_ray(sample.wo);
-
-                                    // contributed = Spectrum::from_rgb(sample.wo.x, sample.wo.y, sample.wo.z);
-                                    // break;
                                 } else {
                                     for light in scene.lights.iter() {
                                         if light.is_environment() {
@@ -134,13 +175,13 @@ impl IntegratorT for PathIntegrator {
                                 i += 1;
                             }
 
+                            STATS.path_length.add(i as i64);
+
                             if contributed.is_black() {
                                 STATS.zero_radiance_paths.inc();
                             }
 
                             tile.apply_sample(tp, contributed);
-
-                            STATS.path_length.add(i as i64);
                         }
 
                         progress.advance(1);

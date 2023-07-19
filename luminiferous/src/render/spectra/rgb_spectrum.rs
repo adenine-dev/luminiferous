@@ -37,6 +37,16 @@ impl SpectrumT for RgbSpectrum {
         true
     }
 
+    fn has_nan(&self) -> bool {
+        for s in self.c {
+            if s.is_nan() {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn to_rgb(&self) -> [f32; 3] {
         [self.r, self.g, self.b]
     }
@@ -47,6 +57,10 @@ impl SpectrumT for RgbSpectrum {
             0.212671 * self[0] + 0.715160 * self[1] + 0.072169 * self[2],
             0.019334 * self[0] + 0.119193 * self[1] + 0.950227 * self[2],
         ]
+    }
+
+    fn y(&self) -> f32 {
+        0.212671 * self[0] + 0.715160 * self[1] + 0.072169 * self[2]
     }
 }
 

@@ -62,6 +62,7 @@ impl BsdfT for Dielectric {
 
         BsdfSample {
             wo,
+            sampled: self.flags(),
             spectrum: self.t,
         }
     }

@@ -1,32 +1,34 @@
 use std::mem::size_of;
 
 use crate::prelude::*;
-use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
+use crate::primitive::SurfaceInteraction;
 
-use super::{Texture, TextureMapping, TextureT};
+use super::{SpectralTexture, TextureMapping, TextureT};
 
 #[derive(Debug, Clone)]
-pub struct CheckerboardTexture {
-    a: Spectrum,
-    b: Spectrum,
+pub struct CheckerboardTexture<T: Copy> {
+    a: T,
+    b: T,
     to_uv: TextureMapping,
 }
 
-impl CheckerboardTexture {
-    pub fn new(a: Spectrum, b: Spectrum, to_uv: TextureMapping) -> Self {
+impl<T: Copy> CheckerboardTexture<T> {
+    pub fn new(a: T, b: T, to_uv: TextureMapping) -> Self {
         STATS.textures_created.inc();
-        STATS.texture_memory.add(size_of::<Texture>() as u64);
+        STATS
+            .texture_memory
+            .add(size_of::<SpectralTexture>() as u64);
 
         Self { a, b, to_uv }
     }
 }
 
-impl TextureT for CheckerboardTexture {
-    fn eval(&self, si: &SurfaceInteraction) -> Spectrum {
+impl<T: Copy> TextureT<T> for CheckerboardTexture<T> {
+    fn eval(&self, si: &SurfaceInteraction) -> T {
         self.eval_uv(si.uv)
     }
 
-    fn eval_uv(&self, uv: Point2) -> Spectrum {
+    fn eval_uv(&self, uv: Point2) -> T {
         let st = self.to_uv.map(uv);
         let mask = st - st.floor();
         if (mask.x > 0.5) == (mask.y > 0.5) {
@@ -34,5 +36,9 @@ impl TextureT for CheckerboardTexture {
         } else {
             self.b
         }
+    }
+
+    fn extent(&self) -> UExtent2 {
+        UExtent2::splat(1)
     }
 }

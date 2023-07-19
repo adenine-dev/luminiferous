@@ -1,22 +1,26 @@
 use std::{path::Path, time::Instant};
 
-use crate::prelude::*;
-
+use crate::loaders::shapes_from_russimp_mesh;
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
     aggregates::{Aggregate, Bvh, Vector},
+    bsdfs::{ior, Dielectric, MeasuredBsdf},
     bsdfs::{Bsdf, Lambertian},
     bsdfs::{Conductor, NullBsdf},
     cameras::{Camera, PerspectiveCamera},
+    core::Array2d,
     film::Film,
     integrators::VolPathIntegrator,
     integrators::{Integrator, IntegratorT, PathIntegrator},
+    lights::{AreaLight, DistantLight},
     lights::{Environment, Light, PointLight},
     loaders::{AssimpLoader, Loader},
     loaders::{PbrtLoader, SceneCreationParams},
+    materials::MixMaterial,
     materials::{DirectMaterial, Material},
     media::{HomogeneousMedium, Medium, MediumInterface},
     phase_functions::{IsotropicPhaseFunction, PhaseFunction},
+    prelude::*,
     primitive::Primitive,
     rfilters::TentFilter,
     samplers::{RandomSampler, Sampler, StratifiedSampler},
@@ -26,7 +30,8 @@ use crate::{
     shapes::{Shape, Sphere},
     spectra::{Spectrum, SpectrumT},
     textures::ImageTexture,
-    textures::{CheckerboardTexture, ConstantTexture, Texture, TextureMapping, UvTexture},
+    textures::{CheckerboardTexture, ConstantTexture, SpectralTexture, TextureMapping},
+    textures::{Texture, UvTexture},
 };
 
 pub struct Context {
@@ -45,10 +50,10 @@ impl Context {
         infoln!("initializing...");
 
         let start = Instant::now();
-        // let (width, height) = (3840, 2160);
+        let (width, height) = (3840, 2160);
         // let (width, height) = (1600, 900);
         // let (width, height) = (1280, 720);
-        let (width, height) = (800, 450);
+        // let (width, height) = (800, 450);
         // let (width, height) = (800, 800);
         // let (width, height) = (1200, 1200);
         // let (width, height) = (512, 384);
@@ -60,12 +65,7 @@ impl Context {
         //TODO: replace with actual scene loading lol.. this is extremely quick and bad
         let load_obj =
             |sb: &mut SceneBuilder, path, material, world_to_object, medium_interface| {
-                let (models, _) = tobj::load_obj(
-                    path,
-                    // "assets/bunny/bunny.obj",
-                    &tobj::GPU_LOAD_OPTIONS,
-                )
-                .expect("oof");
+                let (models, _) = tobj::load_obj(path, &tobj::GPU_LOAD_OPTIONS).expect("oof");
 
                 let mesh = &models[0].mesh;
                 let vertices = mesh
@@ -77,7 +77,7 @@ impl Context {
                 let normals = mesh
                     .normals
                     .chunks(3)
-                    .map(|p| Normal3::new(p[0], p[1], p[2]))
+                    .map(|p| Normal3::new(p[0], p[1], p[2]).normalize())
                     .collect::<Vec<_>>();
                 // assume...
                 let uvs = mesh
@@ -113,7 +113,7 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 4 {
+        let scene = match 5 {
             // sphere pyramid
             0 => {
                 let mut scene_builder = SceneBuilder::new();
@@ -154,13 +154,13 @@ impl Context {
                             scene_builder.primitive(
                                 Shape::Sphere(Sphere::new(r)),
                                 Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
-                                    Lambertian::new(Texture::Constant(ConstantTexture::new(
-                                        Spectrum::from_rgb(
+                                    Lambertian::new(SpectralTexture::Constant(
+                                        ConstantTexture::new(Spectrum::from_rgb(
                                             (z as f32 / N as f32 * 0.7) + 0.2,
                                             (x as f32 / N as f32 * 0.7) + 0.2,
                                             (y as f32 / N as f32 * 0.7) + 0.2,
-                                        ),
-                                    ))),
+                                        )),
+                                    )),
                                 ))),
                                 Some(Transform3::translate(p)),
                                 MediumInterface::none(),
@@ -198,15 +198,19 @@ impl Context {
                 scene_builder.primitive(
                     Shape::Sphere(Sphere::new(50000.0)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.5, 0.5, 0.5))),
+                        SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                            0.5, 0.5, 0.5,
+                        ))),
                     )))),
                     Some(Transform3::translate(Vector3::new(0.0, -50000.5, 0.0))),
                     MediumInterface::none(),
                 );
 
-                scene_builder.light(Light::Environment(Environment::new(Texture::Constant(
-                    ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8)),
-                ))));
+                scene_builder.light(Light::Environment(Environment::new(
+                    SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                        0.8, 0.8, 0.8,
+                    ))),
+                )));
 
                 scene_builder.build()
             }
@@ -220,7 +224,7 @@ impl Context {
                     ),
                     Transform3::new(
                         Matrix4::look_at_rh(
-                            Point3::new(12.0, 20.0, 18.0),
+                            Point3::new(-12.0, 18.0, 18.0),
                             Point3::new(0.0, 13.0, 0.0),
                             Vector3::Y,
                         )
@@ -235,9 +239,17 @@ impl Context {
                 load_obj(
                     &mut sb,
                     "assets/Flamehorn Wyrmling/BabyDragon_C_v01_reduced.obj",
-                    Material::Direct(DirectMaterial::new(Bsdf::Conductor(Conductor::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
-                    )))),
+                    // Material::Direct(DirectMaterial::new(Bsdf::Conductor(Conductor::new(
+                    //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                    //         0.8, 0.8, 0.8,
+                    //     ))),
+                    // )))),
+                    Material::Direct(DirectMaterial::new(Bsdf::Measured(
+                        MeasuredBsdf::load_from_file(Path::new(
+                            "assets/brdfs/vch_dragon_eye_red_rgb.bsdf",
+                        ))
+                        .unwrap(),
+                    ))),
                     None,
                     MediumInterface::none(),
                 );
@@ -245,7 +257,9 @@ impl Context {
                     &mut sb,
                     "assets/Flamehorn Wyrmling/BabyDragon_C_Base_v01_reduced.obj",
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.2, 0.2, 0.2))),
+                        SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                            0.2, 0.2, 0.2,
+                        ))),
                     )))),
                     None,
                     MediumInterface::none(),
@@ -254,7 +268,9 @@ impl Context {
                 sb.primitive(
                     Shape::Sphere(Sphere::new(50000.0)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.5, 0.5, 0.5))),
+                        SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                            0.5, 0.5, 0.5,
+                        ))),
                     )))),
                     Some(Transform3::translate(Vector3::new(0.0, -50000.5, 0.0))),
                     MediumInterface::none(),
@@ -262,7 +278,7 @@ impl Context {
 
                 sb.light(Light::Environment(Environment::new(
                     // Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
-                    Texture::Image(ImageTexture::from_path(Path::new(
+                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
                         "assets/kloppenheim_07_puresky/kloppenheim_07_puresky_4k.exr",
                     ))),
                 )));
@@ -283,15 +299,14 @@ impl Context {
                     ),
                     Transform3::new(
                         Matrix4::look_at_rh(
-                            // Point3::new(0.0, 2.0, 8.0),
-                            Point3::new(0.0, 2.0, 8.0),
                             // Point3::new(0.0, 0.0, 8.0),
+                            Point3::new(0.0, 2.0, 8.0),
                             Point3::new(0.0, 0.0, 0.0),
                             Vector3::Y,
                         )
                         .inverse(),
                     ),
-                    0.4,
+                    0.3,
                     0.0,
                     0.0,
                     None,
@@ -303,7 +318,7 @@ impl Context {
                     &mut sb,
                     "assets/material_test/backdrop.obj",
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Checkerboard(CheckerboardTexture::new(
+                        SpectralTexture::Checkerboard(CheckerboardTexture::new(
                             Spectrum::from_rgb(0.3, 0.3, 0.3),
                             Spectrum::from_rgb(0.8, 0.8, 0.8),
                             TextureMapping::new(Matrix3::from_scale(Vector2::splat(11.8))),
@@ -315,18 +330,27 @@ impl Context {
 
                 sb.primitive(
                     Shape::Sphere(Sphere::new(r)),
-                    Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(1.0, 0.8, 1.0))),
-                    )))),
+                    Material::Direct(DirectMaterial::new(
+                        // Bsdf::Measured(
+                        //     MeasuredBsdf::load_from_file(Path::new(
+                        //         "assets/brdfs/weta_brushed_steel_satin_pink_rgb.bsdf",
+                        //     ))
+                        //     .unwrap(),
+                        // ),
+                        Bsdf::Lambertian(Lambertian::new(SpectralTexture::Constant(
+                            ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8)),
+                        ))),
+                    )),
                     None,
                     MediumInterface::none(),
                 );
 
-                sb.light(Light::Environment(Environment::new(Texture::Image(
-                    ImageTexture::from_path(Path::new(
+                sb.light(Light::Environment(Environment::new(
+                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
                         "assets/material_test/christmas_photo_studio_07.exr",
-                    )),
-                ))));
+                        // "assets/venice_sunset_4k.exr",
+                    ))),
+                )));
 
                 sb.build()
             }
@@ -356,7 +380,7 @@ impl Context {
                     &mut sb,
                     "assets/material_test/backdrop.obj",
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        Texture::Checkerboard(CheckerboardTexture::new(
+                        SpectralTexture::Checkerboard(CheckerboardTexture::new(
                             Spectrum::from_rgb(0.3, 0.3, 0.3),
                             Spectrum::from_rgb(0.8, 0.8, 0.8),
                             TextureMapping::new(Matrix3::from_scale(
@@ -394,11 +418,11 @@ impl Context {
                     ),
                 );
 
-                sb.light(Light::Environment(Environment::new(Texture::Image(
-                    ImageTexture::from_path(Path::new(
+                sb.light(Light::Environment(Environment::new(
+                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
                         "assets/material_test/christmas_photo_studio_07.exr",
-                    )),
-                ))));
+                    ))),
+                )));
 
                 sb.build()
             }
@@ -411,6 +435,142 @@ impl Context {
                         extent: UExtent2::new(width, height),
                     },
                 );
+
+                sb.build()
+            }
+            // material scene
+            5 => {
+                let mut sb = SceneBuilder::new();
+                sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
+                    Film::new(
+                        UVector2::new(width, height),
+                        TentFilter::new(Vector2::splat(1.0)),
+                    ),
+                    Transform3::new(
+                        Matrix4::look_at_rh(
+                            Point3::new(1.0, 0.6, 0.0),
+                            Point3::new(0.0, 0.4, 0.0),
+                            Vector3::Y,
+                        )
+                        .inverse(),
+                    ),
+                    core::f32::consts::FRAC_PI_4 + 0.05,
+                    0.0,
+                    0.0,
+                    None,
+                )));
+
+                load_obj(
+                    &mut sb,
+                    "assets/scenes/vintage_oil_lamps/floor.obj",
+                    // Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
+                    //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                    //         0.8, 0.8, 0.8,
+                    //     ))),
+                    // )))),
+                    Material::Direct(DirectMaterial::new(Bsdf::Measured(
+                        MeasuredBsdf::load_from_file(Path::new(
+                            "assets/brdfs/paper_white_rgb.bsdf",
+                        ))
+                        .unwrap(),
+                    ))),
+                    None,
+                    MediumInterface::none(),
+                );
+
+                let mut oil_lamp = |font_bsdf, bowl_bsdf, transform| {
+                    load_obj(
+                        &mut sb,
+                        "assets/scenes/vintage_oil_lamps/font.obj",
+                        Material::Direct(DirectMaterial::new(Bsdf::Measured(
+                            MeasuredBsdf::load_from_file(Path::new(font_bsdf)).unwrap(),
+                        ))),
+                        Some(transform),
+                        MediumInterface::none(),
+                    );
+
+                    load_obj(
+                        &mut sb,
+                        "assets/scenes/vintage_oil_lamps/chimney.obj",
+                        Material::Direct(DirectMaterial::new(Bsdf::Dielectric(Dielectric::new(
+                            ior::AIR,
+                            ior::PYREX,
+                            Spectrum::from_rgb(1.0, 1.0, 1.0),
+                        )))),
+                        Some(transform),
+                        MediumInterface::none(),
+                    );
+
+                    sb.primitive(
+                        Shape::Sphere(Sphere::new(0.1)),
+                        Material::Direct(DirectMaterial::new(Bsdf::Measured(
+                            MeasuredBsdf::load_from_file(Path::new(bowl_bsdf)).unwrap(),
+                        ))),
+                        Some(transform * Transform3::translate(Vector3::new(0.0, 0.265, 0.0))),
+                        MediumInterface::none(),
+                    );
+                };
+
+                // front row
+                let size = 0.4;
+                oil_lamp(
+                    "assets/brdfs/vch_golden_yellow_rgb.bsdf",
+                    "assets/brdfs/cc_iris_purple_gem_rgb.bsdf",
+                    Transform3::translate(Vector3::new(0.0, 0.0, -size)),
+                );
+                oil_lamp(
+                    "assets/brdfs/cc_ibiza_sunset_rgb.bsdf",
+                    "assets/brdfs/cg_sunflower_rgb.bsdf",
+                    Transform3::identity(),
+                );
+                oil_lamp(
+                    "assets/brdfs/aniso_brushed_aluminium_1_rgb.bsdf",
+                    "assets/brdfs/colodur_napoli_4f_rgb.bsdf",
+                    Transform3::translate(Vector3::new(0.0, 0.0, size)),
+                );
+
+                // back row
+                oil_lamp(
+                    "assets/brdfs/weta_brushed_steel_satin_pink_rgb.bsdf",
+                    "assets/brdfs/aniso_morpho_melenaus_rgb.bsdf",
+                    Transform3::translate(Vector3::new(-size, 0.0, -size * 0.5)),
+                );
+                oil_lamp(
+                    "assets/brdfs/aniso_metallic_paper_copper_rgb.bsdf",
+                    "assets/brdfs/satin_rosaline_rgb.bsdf",
+                    Transform3::translate(Vector3::new(-size, 0.0, size * 0.5)),
+                );
+
+                sb.light(Light::Environment(Environment::new(
+                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
+                        "assets/material_test/christmas_photo_studio_07.exr",
+                    ))),
+                    // SpectralTexture::Constant(ConstantTexture::new(Spectrum::splat(0.1))),
+                )));
+
+                // sb.light(Light::Distant(DistantLight::new(
+                //     Vector3::new(-1.0, 1.0, 1.0).normalize(),
+                //     Spectrum::splat(4.0),
+                // )));
+
+                // sb.light(Light::Point(PointLight::new(
+                //     Point3::new(-20.0, 5.0, 10.0).normalize(),
+                //     Spectrum::splat(4.0),
+                // )));
+
+                // sb.area_light(AreaLight::new(
+                //     Primitive::new(
+                //         Shape::Sphere(Sphere::new(180.0)),
+                //         0,
+                //         None,
+                //         Some(
+                //             Transform3::translate(Vector3::new(180.0, 180.0, 180.0)), // * Transform3::scale(Point3::new(0.001, 1.0, 1.0)),
+                //         ),
+                //         MediumInterface::none(),
+                //     ),
+                //     Spectrum::splat(1.5),
+                // ));
+
                 sb.build()
             }
             _ => {
@@ -422,8 +582,8 @@ impl Context {
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
         // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
-        const MAX_BOUNCES: u32 = 100;
-        let integrator = Integrator::VolPath(VolPathIntegrator::new(sampler, MAX_BOUNCES));
+        const MAX_BOUNCES: u32 = 10;
+        let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES));
 
         let duration = start.elapsed();
         let ctx = Self { scene, integrator };

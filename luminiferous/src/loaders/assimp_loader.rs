@@ -19,7 +19,7 @@ use crate::{
     scene::SceneBuilder,
     shapes::{Shape, Triangle},
     spectra::{Spectrum, SpectrumT},
-    textures::{ConstantTexture, Texture},
+    textures::{ConstantTexture, SpectralTexture},
 };
 
 use super::{Loader, SceneCreationParams};
@@ -266,10 +266,11 @@ impl Loader for AssimpLoader {
                 .collect();
 
             // NOTE: materials aren't exported from blender yet shrug
-            let material =
-                Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                    Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.6, 0.3, 0.6))),
-                ))));
+            let material = Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
+                Lambertian::new(SpectralTexture::Constant(ConstantTexture::new(
+                    Spectrum::from_rgb(0.6, 0.3, 0.6),
+                ))),
+            )));
             sb.primitives(triangles, material, None, MediumInterface::none());
         }
     }

@@ -7,14 +7,20 @@ use crate::{
     spectra::{Spectrum, SpectrumT},
 };
 
-use super::{Texture, TextureT};
+use super::{SpectralTexture, TextureT};
 
 #[derive(Debug, Clone)]
-pub struct ImageTexture {
-    pixels: Array2d<Spectrum>,
+pub struct ImageTexture<T: Copy> {
+    pixels: Array2d<T>,
 }
 
-impl ImageTexture {
+impl<T: Copy> ImageTexture<T> {
+    pub fn new(pixels: Array2d<T>) -> Self {
+        Self { pixels }
+    }
+}
+
+impl ImageTexture<Spectrum> {
     pub fn from_path(path: &Path) -> Self {
         let image = exr::prelude::read_first_rgba_layer_from_file(
             path,
@@ -47,7 +53,9 @@ impl ImageTexture {
         STATS
             .texture_memory
             .add(size_of::<Spectrum>() as u64 * pixels.len() as u64);
-        STATS.texture_memory.add(size_of::<Texture>() as u64);
+        STATS
+            .texture_memory
+            .add(size_of::<SpectralTexture>() as u64);
 
         Self {
             pixels: Array2d::from_1d(extent, pixels),
@@ -55,15 +63,19 @@ impl ImageTexture {
     }
 }
 
-impl TextureT for ImageTexture {
-    fn eval(&self, si: &SurfaceInteraction) -> Spectrum {
+impl<T: Copy> TextureT<T> for ImageTexture<T> {
+    fn eval(&self, si: &SurfaceInteraction) -> T {
         self.eval_uv(si.uv)
     }
 
-    fn eval_uv(&self, uv: Point2) -> Spectrum {
+    fn eval_uv(&self, uv: Point2) -> T {
         //TODO: better filtering
-        let x = uv * (self.pixels.get_extent() - UVector2::splat(1)).as_vec2();
+        let x = (uv) * (self.pixels.get_extent() - UVector2::splat(1)).as_vec2();
 
         self.pixels[x.y as usize][x.x as usize]
+    }
+
+    fn extent(&self) -> UExtent2 {
+        self.pixels.get_extent()
     }
 }

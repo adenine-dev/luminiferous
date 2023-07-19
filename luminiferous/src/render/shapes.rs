@@ -18,6 +18,15 @@ pub struct ShapeInteraction {
     pub p: Point3,
     pub n: Normal3,
     pub uv: Point2,
+
+    pub dp_du: Vector3,
+    pub dp_dv: Vector3,
+    // pub shading_frame: Frame3,
+}
+
+pub struct ShapeSample {
+    pub p: Point3,
+    pub n: Normal3,
 }
 
 #[enum_dispatch]
@@ -32,7 +41,13 @@ pub trait ShapeT {
 
     fn make_bounds(&self) -> Bounds3;
 
-    /// If possible transforms the shape by the specified transform and returns true. Otherwise does not transform the shape and returns false.
+    /// Returns the surface area of the shape.
+    fn area(&self) -> f32;
+
+    fn sample(&self, u: Point2) -> ShapeSample;
+
+    /// If possible transforms the shape by the specified transform and returns true.
+    /// Otherwise does not transform the shape and returns false.
     fn transform(&mut self, _transform: &Transform3) -> bool {
         false
     }

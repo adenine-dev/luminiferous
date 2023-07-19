@@ -1,5 +1,6 @@
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
+use crate::lights::AreaLight;
 use crate::prelude::*;
 use crate::{
     aggregates::{Aggregate, AggregateT, Bvh},
@@ -39,9 +40,7 @@ impl Scene {
 
         if let Some(intersection) = self.aggregate.intersect_p(visibility.ray).0 {
             if intersection.shape_intersection.t < visibility.end.distance(visibility.ray.o)
-            // && !self.materials[intersection.primitive.material_index]
-            //     .bsdf_flags()
-            //     .contains(BsdfFlags::Null)
+            // && intersection.shape_intersection.t > 0.0
             {
                 return false;
             }
@@ -67,7 +66,6 @@ pub struct SceneBuilder {
     primitives: Vec<Primitive>,
     camera: Option<Camera>,
     materials: Vec<Material>,
-    named_materials: HashMap<String, usize>,
 }
 
 impl SceneBuilder {
@@ -77,7 +75,6 @@ impl SceneBuilder {
             primitives: vec![],
             camera: None,
             materials: vec![],
-            named_materials: HashMap::new(),
         }
     }
 
@@ -109,6 +106,7 @@ impl SceneBuilder {
         self.primitives.push(Primitive::new(
             shape,
             self.materials.len() - 1,
+            None,
             world_to_object,
             medium_interface,
         ));
@@ -128,6 +126,7 @@ impl SceneBuilder {
             Primitive::new(
                 s,
                 self.materials.len() - 1,
+                None,
                 world_to_object,
                 medium_interface.clone(),
             )
@@ -136,11 +135,11 @@ impl SceneBuilder {
         self
     }
 
-    pub fn material(&mut self, key: String, material: Material) -> &mut Self {
-        //TODO: material reuse
-        self.materials.push(material);
-        self.named_materials.insert(key, self.materials.len() - 1);
+    pub fn area_light(&mut self, mut light: AreaLight) -> &mut Self {
+        light.primitive.area_light_index = Some(self.lights.len());
+        self.primitives.push(light.primitive.clone());
 
+        self.lights.push(Light::Area(light));
         self
     }
 

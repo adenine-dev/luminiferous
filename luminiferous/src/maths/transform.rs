@@ -135,6 +135,8 @@ impl Transform3 {
             p: ray.at(si.t),
             n: self.transform_normal(si.n),
             uv: si.uv,
+            dp_du: self.transform_normal(si.dp_du),
+            dp_dv: self.transform_normal(si.dp_dv),
         }
     }
 }

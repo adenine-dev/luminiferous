@@ -6,14 +6,17 @@ This is a hobby ray tracer. Very much a work in progress right now. Commits are 
 
 (These are each 4k so they may take a bit to load)
 
-![Dragon](./renders/dragon.png)
+![Monkey](./renders/monkey.png)
 
-<p align="middle">Dragon</p>
+<p align="middle">Suzanne, 1024 samples</p>
+<p align="middle">This is a basic render that demonstrates various capabilities of the renderer including ability to load models, textures, and analytic materials.</p>
 
-![Dragon](./renders/monkey.png)
+![Bunny](./renders/bunny.png)
 
-<p align="middle">Monkey</p>
+<p align="middle">Bnuuy, 1024 samples</p>
+<p align="middle">This demonstrates the media rendering capabilities of the renderer. The bunny has a dielectric surface with a homogeneous internal participating medium which results in a jade or soap like surface.</p>
 
-![Dragon](./renders/bunny.png)
+![Vintage Oil Lamps](./renders/vintage-oil-lamps.png)
 
-<p align="middle">Bnuuy</p>
+<p align="middle">Vintage Oil Lamps, 1024 samples</p>
+<p align="middle">This render uses the measured material rendering capabilities of the renderer. Each material in this scene (barring the glass chimneys) is sourced from <a href="https://rgl.epfl.ch/materials">the RGL material database</a>.</p>

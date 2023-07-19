@@ -39,7 +39,7 @@ impl LightT for DistantLight {
             wo,
             li: self.l_e(wo),
             visibility: Visibility {
-                ray: Ray::new(p + face_forward(n, wo) * 1e-6, wo),
+                ray: Ray::new(p + face_forward(n, wo) * 1e-4, wo),
                 end: p + face_forward(n, wo) * 1e6,
             },
         }

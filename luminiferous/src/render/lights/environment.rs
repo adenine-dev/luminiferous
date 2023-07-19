@@ -1,19 +1,23 @@
 use crate::prelude::*;
+use crate::spectra::SpectrumT;
 use crate::{
     primitive::SurfaceInteraction,
     spectra::Spectrum,
-    textures::{Texture, TextureT},
+    textures::{SpectralTexture, TextureT},
 };
 
 use super::{LightSample, LightT, Visibility};
 
 pub struct Environment {
-    radiance: Texture,
+    radiance: SpectralTexture,
 }
 
 impl Environment {
-    pub fn new(radiance: Texture) -> Self {
+    pub fn new(radiance: SpectralTexture) -> Self {
         STATS.lights_created.inc();
+        let extent = radiance.extent();
+
+        let mut ys = vec![0.0; extent.x as usize * extent.y as usize];
 
         Self { radiance }
     }
@@ -25,10 +29,14 @@ impl LightT for Environment {
     }
 
     fn l_e(&self, wi: Vector3) -> Spectrum {
+        let wi = ((Matrix4::from_axis_angle(Vector3::Y, -core::f32::consts::FRAC_PI_3 - 0.2)
+            * wi.extend(0.0))
+        .truncate())
+        .normalize();
         self.radiance.eval_uv(
             Point2::new(
-                -wi.z.atan2(-wi.x) / core::f32::consts::TAU,
-                wi.y.asin() / core::f32::consts::PI,
+                -wi.z.atan2(wi.x) / core::f32::consts::TAU,
+                -wi.y.asin() / core::f32::consts::PI,
             ) + Vector2::splat(0.5),
         )
     }
@@ -48,7 +56,7 @@ impl LightT for Environment {
             wo: wi,
             li: self.l_e(wi),
             visibility: Visibility {
-                ray: Ray::new(p + face_forward(n, wi) * 1e-6, wi),
+                ray: Ray::new(p + n * 1e-6, wi),
                 end: p + wi * 1.0e7,
             },
         }

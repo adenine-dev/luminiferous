@@ -30,9 +30,13 @@ pub trait SpectrumT:
     
     fn is_black(&self) -> bool;
 
+    fn has_nan(&self) -> bool;
+
     fn to_rgb(&self) -> [f32; 3];
 
     fn to_xyz(&self) -> [f32; 3];
+
+    fn y(&self) -> f32;
 }
 
 pub type Spectrum = RgbSpectrum;

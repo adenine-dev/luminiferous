@@ -13,6 +13,9 @@ pub use conductor::*;
 mod dielectric;
 pub use dielectric::*;
 
+mod measured;
+pub use measured::*;
+
 mod null;
 pub use null::*;
 
@@ -21,7 +24,7 @@ pub use util::*;
 
 pub struct BsdfSample {
     pub wo: Vector3,
-
+    pub sampled: BsdfFlags,
     pub spectrum: Spectrum,
 }
 
@@ -62,5 +65,6 @@ pub enum Bsdf {
     Lambertian(Lambertian),
     Conductor(Conductor),
     Dielectric(Dielectric),
+    Measured(MeasuredBsdf),
     Null(NullBsdf),
 }

@@ -8,16 +8,23 @@ pub struct Frame3 {
 }
 
 impl Frame3 {
-    pub fn new(n: Normal3) -> Self {
+    /// Returns (s, t) where n, s, and t form an orthonormal basis.
+    #[inline]
+    pub fn coordinate_system(n: Normal3) -> (Vector3, Vector3) {
         let sign = n.z.signum();
         let a = -(sign + n.z).recip();
         let b = n.x * n.y * a;
 
-        Self {
-            n,
-            s: Vector3::new(1.0 + sign * n.x * n.x * a, sign * b, -sign * n.x),
-            t: Vector3::new(b, sign + n.y * n.y * a, -n.y),
-        }
+        (
+            Vector3::new(1.0 + sign * n.x * n.x * a, sign * b, -sign * n.x),
+            Vector3::new(b, sign + n.y * n.y * a, -n.y),
+        )
+    }
+
+    pub fn new(n: Normal3) -> Self {
+        let (s, t) = Self::coordinate_system(n);
+
+        Self { n, s, t }
     }
 
     pub fn to_local(&self, v: Vector3) -> Vector3 {

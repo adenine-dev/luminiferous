@@ -113,9 +113,7 @@ impl IntegratorT for VolPathIntegrator {
                                         pixel_sampler.next_2d(),
                                     );
                                     let l = sample.spectrum;
-                                    if (material.bsdf_flags() & BsdfFlags::Smooth)
-                                        == BsdfFlags::Smooth
-                                    {
+                                    if (sample.sampled & BsdfFlags::Smooth) == BsdfFlags::Smooth {
                                         for light in scene.lights.iter() {
                                             let emitted = light
                                                 .sample_li(&interaction, pixel_sampler.next_2d());
@@ -137,7 +135,7 @@ impl IntegratorT for VolPathIntegrator {
                                         break;
                                     }
 
-                                    if material.bsdf_flags() != BsdfFlags::Null {
+                                    if sample.sampled != BsdfFlags::Null {
                                         ray = interaction.spawn_ray(sample.wo);
                                     } else {
                                         depth -= 1;

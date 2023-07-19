@@ -9,6 +9,9 @@ pub use point::*;
 mod distant;
 pub use distant::*;
 
+mod area;
+pub use area::*;
+
 use crate::prelude::*;
 use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
 
@@ -39,4 +42,5 @@ pub enum Light {
     Environment(Environment),
     Point(PointLight),
     Distant(DistantLight),
+    Area(AreaLight),
 }

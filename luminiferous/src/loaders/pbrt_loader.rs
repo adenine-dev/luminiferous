@@ -9,6 +9,7 @@ use core::panic;
 use std::{collections::HashMap, fs, path::Path};
 
 use crate::prelude::*;
+
 use crate::{
     bsdfs::{Bsdf, Dielectric, Lambertian},
     cameras::{Camera, PerspectiveCamera},
@@ -21,7 +22,7 @@ use crate::{
     scene::SceneBuilder,
     shapes::{Shape, Sphere},
     spectra::{Spectrum, SpectrumT},
-    textures::{ConstantTexture, ImageTexture, Texture},
+    textures::{ConstantTexture, ImageTexture, SpectralTexture},
 };
 
 use super::{Loader, SceneCreationParams};
@@ -29,6 +30,7 @@ use super::{Loader, SceneCreationParams};
 pub struct PbrtLoader {}
 
 #[derive(Debug)]
+#[allow(dead_code)] //incomplete impl
 enum ParameterValue {
     Integer(Vec<i32>),
     Float(Vec<f32>),
@@ -98,7 +100,7 @@ impl Loader for PbrtLoader {
         let mut state = GraphicsState {
             transform: Transform3::identity(),
             material: Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
+                SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
             )))),
             named_materials: HashMap::new(),
         };
@@ -256,7 +258,7 @@ impl Loader for PbrtLoader {
             ($l:ident, $kind:expr, $params:ident) => {{
                 match $kind {
                     "\"diffuse\"" => Some(Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
-                        Lambertian::new(Texture::Constant(ConstantTexture::new(
+                        Lambertian::new(SpectralTexture::Constant(ConstantTexture::new(
                             Spectrum::from_rgb(0.5, 0.5, 0.5),
                         ))),
                     )))),
@@ -372,9 +374,11 @@ impl Loader for PbrtLoader {
                     match kind {
                         "\"infinite\"" => {
                             if params.contains_key("L") {
-                                sb.light(Light::Environment(Environment::new(Texture::Constant(
-                                    ConstantTexture::new(params["L"].unwrap_spectrum()),
-                                ))));
+                                sb.light(Light::Environment(Environment::new(
+                                    SpectralTexture::Constant(ConstantTexture::new(
+                                        params["L"].unwrap_spectrum(),
+                                    )),
+                                )));
                             } else if params.contains_key("filename") {
                                 let filename = &params["filename"].unwrap_string();
                                 let filename = if !Path::new(filename).is_absolute() {
@@ -382,9 +386,9 @@ impl Loader for PbrtLoader {
                                 } else {
                                     Path::new(filename).to_path_buf()
                                 };
-                                sb.light(Light::Environment(Environment::new(Texture::Image(
-                                    ImageTexture::from_path(&filename),
-                                ))));
+                                sb.light(Light::Environment(Environment::new(
+                                    SpectralTexture::Image(ImageTexture::from_path(&filename)),
+                                )));
                             }
                         }
                         "\"distant\"" => {
@@ -441,7 +445,7 @@ impl Loader for PbrtLoader {
                                 filename.as_path().to_str().unwrap(),
                                 vec![
                                     russimp::scene::PostProcess::Triangulate,
-                                    // russimp::scene::PostProcess::JoinIdenticalVertices,
+                                    russimp::scene::PostProcess::JoinIdenticalVertices,
                                     russimp::scene::PostProcess::SortByPrimitiveType,
                                     russimp::scene::PostProcess::PreTransformVertices,
                                 ],

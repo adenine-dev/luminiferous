@@ -3,18 +3,18 @@ use crate::{
     primitive::SurfaceInteraction,
     spectra::Spectrum,
     stats::STATS,
-    textures::{Texture, TextureT},
+    textures::{SpectralTexture, TextureT},
 };
 
 use super::{BsdfFlags, BsdfSample, BsdfT};
 
 #[derive(Debug, Clone)]
 pub struct Lambertian {
-    reflectance: Texture,
+    reflectance: SpectralTexture,
 }
 
 impl Lambertian {
-    pub fn new(reflectance: Texture) -> Self {
+    pub fn new(reflectance: SpectralTexture) -> Self {
         STATS.bsdfs_created.inc();
 
         Self { reflectance }
@@ -27,6 +27,7 @@ impl BsdfT for Lambertian {
 
         BsdfSample {
             wo,
+            sampled: self.flags(),
             spectrum: self.reflectance.eval(interaction),
         }
     }

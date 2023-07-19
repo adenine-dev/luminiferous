@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use super::{ShapeInteraction, ShapeIntersection, ShapeT};
+use super::{ShapeInteraction, ShapeIntersection, ShapeSample, ShapeT};
 
 #[derive(Debug, Clone, Default)]
 pub struct Triangle {
@@ -87,15 +87,35 @@ impl ShapeT for Triangle {
         let b1 = f3.cross(f1).length() / det;
         let b2 = f1.cross(f2).length() / det;
 
+        let duv02 = self.uv[1] - self.uv[0];
+        let duv12 = self.uv[2] - self.uv[0];
+        let dp02 = v2 - v1;
+        let dp12 = v3 - v1;
+
+        let determinant = duv02[0] * duv12[1] - duv02[1] * duv12[0];
+        let (dp_du, dp_dv) = if determinant == 0.0 {
+            let frame = Frame3::new((v3 - v1).cross(v2 - v1).normalize());
+            (frame.s, frame.t)
+        } else {
+            let invdet = determinant.recip();
+            (
+                (duv12.y * dp02 - (duv02.y * dp12)) * invdet,
+                (-duv12.x * dp02 + (duv02.x * dp12)) * invdet,
+            )
+            // (
+            //     (duv12[1] * dp02 - duv02[1] * dp12) * invdet,
+            //     (-duv12[0] * dp02 + duv02[0] * dp12) * invdet,
+            // )
+        };
+
         ShapeInteraction {
             intersection,
             p: ray.at(intersection.t),
             uv: b0 * self.uv[0] + b1 * self.uv[1] + b2 * self.uv[2],
             n: b0 * self.n[0] + b1 * self.n[1] + b2 * self.n[2],
-            // TODO: option for flat shading
-            // n: (self.v[1] - self.v[0])
-            //     .cross(self.v[2] - self.v[0])
-            //     .normalize(),
+
+            dp_du,
+            dp_dv,
         }
     }
 
@@ -110,5 +130,13 @@ impl ShapeT for Triangle {
         self.n = self.n.map(|n| transform.transform_normal(n));
 
         true
+    }
+
+    fn area(&self) -> f32 {
+        unimplemented!()
+    }
+
+    fn sample(&self, _u: Point2) -> ShapeSample {
+        unimplemented!()
     }
 }

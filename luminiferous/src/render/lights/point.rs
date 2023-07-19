@@ -30,13 +30,13 @@ impl LightT for PointLight {
     }
 
     fn sample(&self, p: Point3, n: Normal3, _u: Point2) -> LightSample {
-        let wi = (self.p - p).normalize();
+        let wo = (self.p - p).normalize();
 
         LightSample {
-            wo: wi,
-            li: self.l_e(wi),
+            wo,
+            li: self.l_e(wo),
             visibility: Visibility {
-                ray: Ray::new(p + face_forward(n, wi) * 1e-6, wi),
+                ray: Ray::new(p + face_forward(n, wo) * 1e-6, wo),
                 end: self.p,
             },
         }

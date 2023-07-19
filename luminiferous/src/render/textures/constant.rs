@@ -1,30 +1,36 @@
 use std::mem::size_of;
 
 use crate::prelude::*;
-use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
+use crate::primitive::SurfaceInteraction;
 
-use super::{Texture, TextureT};
+use super::{SpectralTexture, TextureT};
 
 #[derive(Debug, Clone)]
-pub struct ConstantTexture {
-    value: Spectrum,
+pub struct ConstantTexture<T: Copy> {
+    value: T,
 }
 
-impl ConstantTexture {
-    pub fn new(value: Spectrum) -> Self {
+impl<T: Copy> ConstantTexture<T> {
+    pub fn new(value: T) -> Self {
         STATS.textures_created.inc();
-        STATS.texture_memory.add(size_of::<Texture>() as u64);
+        STATS
+            .texture_memory
+            .add(size_of::<SpectralTexture>() as u64);
 
         Self { value }
     }
 }
 
-impl TextureT for ConstantTexture {
-    fn eval(&self, _si: &SurfaceInteraction) -> Spectrum {
+impl<T: Copy> TextureT<T> for ConstantTexture<T> {
+    fn eval(&self, _si: &SurfaceInteraction) -> T {
         self.value
     }
 
-    fn eval_uv(&self, _uv: Point2) -> Spectrum {
+    fn eval_uv(&self, _uv: Point2) -> T {
         self.value
+    }
+
+    fn extent(&self) -> UExtent2 {
+        UExtent2::splat(1)
     }
 }
