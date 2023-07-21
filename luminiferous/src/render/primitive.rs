@@ -1,4 +1,5 @@
 use crate::prelude::*;
+
 use crate::shapes::ShapeSample;
 use crate::{
     media::{Medium, MediumInterface},
@@ -19,6 +20,25 @@ pub struct Intersection<'a> {
     pub shape_intersection: ShapeIntersection,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Interaction {
+    pub p: Point3,
+    pub n: Normal3,
+}
+
+impl Interaction {
+    #[inline]
+    pub fn spawn_ray(&self, d: Vector3) -> Ray {
+        Ray::new(self.p + self.n * 1e-4, d)
+    }
+
+    #[inline]
+    pub fn spawn_ray_to(&self, p: Point3) -> Ray {
+        self.spawn_ray((self.p - p).normalize())
+    }
+}
+
+#[derive(Debug)]
 pub struct SurfaceInteraction<'a> {
     pub primitive: &'a Primitive,
     pub t: f32,
@@ -54,15 +74,19 @@ impl<'a> SurfaceInteraction<'a> {
         }
     }
 
-    pub fn spawn_ray(&self, d: Vector3) -> Ray {
-        Ray::new(self.p + face_forward(self.n, d) * 1e-6, d)
-    }
-
     pub fn target_medium(&self, d: Vector3) -> Option<Medium> {
         if self.n.dot(d) > 0.0 {
             self.primitive.medium_interface.outside.clone()
         } else {
             self.primitive.medium_interface.inside.clone()
+        }
+    }
+
+    #[inline]
+    pub fn as_interaction(&self) -> Interaction {
+        Interaction {
+            p: self.p,
+            n: self.n,
         }
     }
 }

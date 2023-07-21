@@ -21,6 +21,7 @@ pub trait SpectrumT:
     + Div<f32, Output = Self>
     + MulAssign<f32>
     + DivAssign<f32>
+    + Neg
 {
     fn from_rgb(r: f32, g: f32, b: f32) -> Self;
     
@@ -37,6 +38,8 @@ pub trait SpectrumT:
     fn to_xyz(&self) -> [f32; 3];
 
     fn y(&self) -> f32;
+
+    fn exp(&self) -> Self;
 }
 
 pub type Spectrum = RgbSpectrum;

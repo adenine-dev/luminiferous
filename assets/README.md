@@ -18,6 +18,6 @@
 
 ## Scenes
 
-- [scenes/dragon](https://benedikt-bitterli.me/resources/) (CC BY 3.0) (See directory for full license)
+- [scenes/dragon](https://benedikt-bitterli.me/resources/) (CC BY 3.0) (Modified) (See directory for full license)
 - scenes/vintage_oil_lamp/
   - [chimeny.obj, font.obj](https://polyhaven.com/a/vintage_oil_lamp) (CC0)

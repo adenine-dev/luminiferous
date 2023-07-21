@@ -1,5 +1,6 @@
 use std::{path::Path, time::Instant};
 
+use crate::lights::Spotlight;
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
     aggregates::{Aggregate, Bvh, Vector},
@@ -214,72 +215,98 @@ impl Context {
             }
             // dragon
             1 => {
+                // let outside = Some(Medium::Homogeneous(HomogeneousMedium::new(
+                //     PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                //     Spectrum::splat(1.0),
+                //     Spectrum::splat(0.005),
+                //     1.0,
+                // )));
+                // let outside = None;
                 let mut sb = SceneBuilder::new();
-                sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
-                    Film::new(
-                        UVector2::new(width, height),
-                        TentFilter::new(Vector2::splat(1.0)),
-                    ),
-                    Transform3::new(
-                        Matrix4::look_at_rh(
-                            Point3::new(-12.0, 18.0, 18.0),
-                            Point3::new(0.0, 13.0, 0.0),
+
+                // load_obj(
+                //     &mut sb,
+                //     "assets/Flamehorn Wyrmling/BabyDragon_C_v01_reduced.obj",
+                //     // Material::Direct(DirectMaterial::new(Bsdf::Null(NullBsdf::new()))),
+                //     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
+                //         SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                //             1.0, 0.6, 0.6,
+                //         ))),
+                //     )))),
+                //     None,
+                //     MediumInterface::new(None, outside.clone()),
+                //     // MediumInterface::new(
+                //     //     Some(Medium::Homogeneous(HomogeneousMedium::new(
+                //     //         PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                //     //         Spectrum::from_rgb(1.0, 0.8, 0.8),
+                //     //         Spectrum::from_rgb(1.0, 1.0, 1.0),
+                //     //         1.0,
+                //     //     ))),
+                //     //     outside.clone(),
+                //     // ),
+                // );
+                // load_obj(
+                //     &mut sb,
+                //     "assets/Flamehorn Wyrmling/BabyDragon_C_Base_v01_reduced.obj",
+                //     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
+                //         SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                //             0.2, 0.2, 0.2,
+                //         ))),
+                //     )))),
+                //     None,
+                //     MediumInterface::new(None, outside.clone()),
+                // );
+
+                // sb.primitive(
+                //     Shape::Sphere(Sphere::new(60000.0)),
+                //     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
+                //         SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                //             0.5, 0.5, 0.5,
+                //         ))),
+                //     )))),
+                //     Some(Transform3::translate(Vector3::new(0.0, -60000.5, 0.0))),
+                //     MediumInterface::new(None, outside.clone()),
+                // );
+                // sb.primitive(
+                //     Shape::Sphere(Sphere::new(5.0)),
+                //     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
+                //         SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                //             0.5, 0.5, 0.5,
+                //         ))),
+                //     )))),
+                //     None,
+                //     // Some(Transform3::translate(Vector3::new(0.0, 0.0, 0.0))),
+                //     MediumInterface::new(None, outside.clone()),
+                // );
+
+                sb.load_with::<PbrtLoader>(
+                    Path::new("assets/scenes/dragon/scene-v4.pbrt"),
+                    SceneCreationParams {
+                        extent: UExtent2::new(width, height),
+                    },
+                );
+
+                // sb.light(Light::Environment(Environment::new(
+                //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::splat(0.01))),
+                //     // SpectralTexture::Image(ImageTexture::from_path(Path::new(
+                //     //     "assets/kloppenheim_07_puresky/kloppenheim_07_puresky_4k.exr",
+                //     // ))),
+                // )));
+
+                sb.light(Light::Spot(Spotlight::new(
+                    Point3::ZERO,
+                    Spectrum::splat(20000.0),
+                    10.0,
+                    10.0,
+                    Some(Transform3::new(
+                        Matrix4::look_to_rh(
+                            Point3::new(0.0, 45.0, 45.0 * 0.69651 / 0.692312),
+                            Vector3::new(0.0, 0.692312, 0.69651),
                             Vector3::Y,
                         )
                         .inverse(),
-                    ),
-                    core::f32::consts::FRAC_PI_2,
-                    0.0,
-                    0.0,
-                    None,
+                    )),
                 )));
-
-                load_obj(
-                    &mut sb,
-                    "assets/Flamehorn Wyrmling/BabyDragon_C_v01_reduced.obj",
-                    Material::Direct(DirectMaterial::new(Bsdf::Null(NullBsdf::new()))),
-                    None,
-                    MediumInterface::new(
-                        Some(Medium::Homogeneous(HomogeneousMedium::new(
-                            PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
-                            Spectrum::from_rgb(0.9, 0.6, 0.6),
-                        ))),
-                        None,
-                    ),
-                );
-                load_obj(
-                    &mut sb,
-                    "assets/Flamehorn Wyrmling/BabyDragon_C_Base_v01_reduced.obj",
-                    Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
-                            0.2, 0.2, 0.2,
-                        ))),
-                    )))),
-                    None,
-                    MediumInterface::none(),
-                );
-
-                sb.primitive(
-                    Shape::Sphere(Sphere::new(60000.0)),
-                    Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
-                        SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
-                            0.5, 0.5, 0.5,
-                        ))),
-                    )))),
-                    Some(Transform3::translate(Vector3::new(0.0, -60000.5, 0.0))),
-                    MediumInterface::none(),
-                );
-
-                sb.light(Light::Environment(Environment::new(
-                    // Texture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
-                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
-                        "assets/kloppenheim_07_puresky/kloppenheim_07_puresky_4k.exr",
-                    ))),
-                )));
-                // sb.light(Light::Point(PointLight::new(
-                //     Point3::new(100.0, 100.0, -20.0),
-                //     Spectrum::from_rgb(1.0, 0.8, 0.6),
-                // )));
 
                 sb.build()
             }
@@ -407,6 +434,8 @@ impl Context {
                         Some(Medium::Homogeneous(HomogeneousMedium::new(
                             PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
                             Spectrum::from_rgb(0.85, 1.0, 0.85),
+                            Spectrum::splat(1.0),
+                            1.0,
                         ))),
                         None,
                     ),
@@ -547,7 +576,7 @@ impl Context {
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
         // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
-        const MAX_BOUNCES: u32 = 1000;
+        const MAX_BOUNCES: u32 = 10;
         let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES, true));
 
         let duration = start.elapsed();

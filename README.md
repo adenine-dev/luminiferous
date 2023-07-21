@@ -20,3 +20,8 @@ This is a hobby ray tracer. Very much a work in progress right now. Commits are 
 
 <p align="middle">Vintage Oil Lamps, 1024 samples</p>
 <p align="middle">This render uses the measured material rendering capabilities of the renderer. Each material in this scene (barring the glass chimneys) is sourced from <a href="https://rgl.epfl.ch/materials">the RGL material database</a>.</p>
+
+![Misty Dragon](./renders/misty-dragon.png)
+
+<p align="middle">Misty Dragon, 2048 samples</p>
+<p align="middle">This uses the volumetric rendering capabilities and a spotlight to render a model dragon in a scene wide mist.</p>

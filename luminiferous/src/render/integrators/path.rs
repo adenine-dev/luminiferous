@@ -2,7 +2,10 @@ use std::path::Path;
 
 use rayon::prelude::*;
 
+use crate::lights::Light;
+use crate::media::MediumInteraction;
 use crate::prelude::*;
+use crate::primitive::SurfaceInteraction;
 use crate::{
     bsdfs::BsdfFlags,
     cameras::{CameraSample, CameraT},
@@ -32,6 +35,77 @@ impl PathIntegrator {
             max_depth: depth,
             volumetric,
         }
+    }
+
+    fn sample_light_from_surface(
+        &self,
+        scene: &Scene,
+        light: &Light,
+        ray: Ray,
+        si: &SurfaceInteraction,
+        sampler: &mut Sampler,
+    ) -> Spectrum {
+        let emitted = light.sample_li(&si.as_interaction(), sampler.next_2d());
+
+        if !scene.unoccluded(emitted.visibility) {
+            return Spectrum::zero();
+        }
+        let f = scene.materials[si.primitive.material_index].eval(&si, emitted.wo, ray.d);
+
+        f * emitted.li * emitted.wo.dot(si.n).abs()
+    }
+
+    fn sample_light_from_medium(
+        &self,
+        scene: &Scene,
+        light: &Light,
+        ray: Ray,
+        mi: &MediumInteraction,
+        sampler: &mut Sampler,
+    ) -> Spectrum {
+        if let Some(pf) = &mi.phase_function && mi.medium.is_some() {
+            let emitted = light.sample_li(&mi.as_interaction(), sampler.next_2d());
+            let mut transmittance = {
+                let mut medium = mi.medium.unwrap();
+                let mut ray = emitted.visibility.ray;
+                let mut transmittance = Spectrum::splat(1.0);
+                
+                while let (Some(intersection), _) = scene.intersect(ray) {
+                    if scene.materials[intersection.primitive.material_index].bsdf_flags() != BsdfFlags::Null
+                    {
+                        return Spectrum::zero();
+                    }
+        
+                    let mi = medium.sample(ray, intersection.t, sampler.next_1d());
+                    if let Some((mi, tr)) = mi {
+                        if mi.valid() {
+                            transmittance *= tr;
+                            medium = mi.medium.unwrap();
+                        }
+                    }
+
+                    ray = intersection.as_interaction().spawn_ray_to(emitted.visibility.end);
+                }
+
+                let mi = medium.sample(ray, f32::MAX, sampler.next_1d());
+                if let Some((mi, tr)) = mi {
+                    if mi.valid() {
+                        transmittance *= tr;
+                    }
+                }
+        
+                transmittance        
+            };
+            
+            if !transmittance.is_black() {
+                let f = pf.eval(mi, emitted.wo, ray.d);
+                transmittance *= f * emitted.wo.dot(mi.wi).abs();
+            }
+
+            return transmittance * emitted.li;
+        }
+
+        Spectrum::zero()
     }
 }
 
@@ -89,41 +163,37 @@ impl IntegratorT for PathIntegrator {
                                     None
                                 };
 
-                                if let Some((mi, l)) = mi {
-                                    if let Some(pf) = &mi.phase_function {
+                                if let Some((mi, l)) = &mi {
+                                    if mi.phase_function.is_some() {
+                                        surface_reflectance *= *l;
                                         for light in scene.lights.iter() {
-                                            let emitted =
-                                                light.sample(mi.p, mi.wi, pixel_sampler.next_2d());
-
-                                            if scene.test_visibility(emitted.visibility) {
-                                                let f = pf.eval(&mi, emitted.wo, ray.d);
-                                                contributed += surface_reflectance
-                                                    * f
-                                                    * emitted.li
-                                                    * emitted.wo.dot(mi.wi).abs();
-                                            }
+                                            contributed += surface_reflectance
+                                                * self.sample_light_from_medium(
+                                                    &scene,
+                                                    light,
+                                                    ray,
+                                                    mi,
+                                                    &mut pixel_sampler,
+                                                );
                                         }
-                                        surface_reflectance *= l;
-                                        let sample = pf.sample(pixel_sampler.next_2d());
-                                        ray = Ray::new(mi.p, sample.wo);
+                                        let sample = mi
+                                            .phase_function
+                                            .as_ref()
+                                            .unwrap()
+                                            .sample(pixel_sampler.next_2d());
+                                        ray = mi.as_interaction().spawn_ray(sample.wo);
                                     }
-                                } else if let Some(interaction) = interaction {
-                                    if let Some(area_light_index) =
-                                        interaction.primitive.area_light_index
-                                    {
+                                } else if let Some(si) = interaction {
+                                    if let Some(area_light_index) = si.primitive.area_light_index {
                                         let l = scene.lights[area_light_index].l_e(-ray.d);
 
                                         contributed += surface_reflectance * l;
                                         break;
                                     }
 
-                                    let material =
-                                        &scene.materials[interaction.primitive.material_index];
-                                    let sample = material.sample(
-                                        -ray.d,
-                                        &interaction,
-                                        pixel_sampler.next_2d(),
-                                    );
+                                    let material = &scene.materials[si.primitive.material_index];
+                                    let sample =
+                                        material.sample(-ray.d, &si, pixel_sampler.next_2d());
 
                                     let l = sample.spectrum;
                                     if l.has_nan() {
@@ -133,17 +203,14 @@ impl IntegratorT for PathIntegrator {
                                         && !sample.sampled.contains(BsdfFlags::Delta)
                                     {
                                         for light in scene.lights.iter() {
-                                            let emitted = light
-                                                .sample_li(&interaction, pixel_sampler.next_2d());
-
-                                            if scene.test_visibility(emitted.visibility) {
-                                                let f =
-                                                    material.eval(&interaction, emitted.wo, ray.d);
-                                                contributed += surface_reflectance
-                                                    * f
-                                                    * emitted.li
-                                                    * emitted.wo.dot(interaction.n).abs();
-                                            }
+                                            contributed += surface_reflectance
+                                                * self.sample_light_from_surface(
+                                                    &scene,
+                                                    light,
+                                                    ray,
+                                                    &si,
+                                                    &mut pixel_sampler,
+                                                );
                                         }
                                     }
                                     surface_reflectance *= l;
@@ -153,12 +220,12 @@ impl IntegratorT for PathIntegrator {
                                     }
 
                                     if sample.sampled != BsdfFlags::Null {
-                                        ray = interaction.spawn_ray(sample.wo);
+                                        ray = si.as_interaction().spawn_ray(sample.wo);
                                     } else {
                                         depth -= 1;
-                                        ray = Ray::new(interaction.p + ray.d * 1e-5, ray.d);
+                                        ray = Ray::new(si.p + ray.d * 1e-5, ray.d);
                                     }
-                                    medium = interaction.target_medium(sample.wo);
+                                    medium = si.target_medium(sample.wo);
 
                                     // ray = interaction.spawn_ray(sample.wo);
                                 } else {

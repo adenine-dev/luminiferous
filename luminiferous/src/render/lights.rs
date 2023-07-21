@@ -12,8 +12,12 @@ pub use distant::*;
 mod area;
 pub use area::*;
 
+mod spot;
+pub use spot::*;
+
 use crate::prelude::*;
-use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
+use crate::primitive::Interaction;
+use crate::spectra::Spectrum;
 
 pub struct Visibility {
     pub ray: Ray,
@@ -32,9 +36,7 @@ pub trait LightT {
 
     fn l_e(&self, wi: Vector3) -> Spectrum;
 
-    fn sample_li(&self, interaction: &SurfaceInteraction, u: Point2) -> LightSample;
-
-    fn sample(&self, p: Point3, n: Normal3, u: Point2) -> LightSample;
+    fn sample_li(&self, interaction: &Interaction, u: Point2) -> LightSample;
 }
 
 #[enum_dispatch(LightT)]
@@ -43,4 +45,5 @@ pub enum Light {
     Point(PointLight),
     Distant(DistantLight),
     Area(AreaLight),
+    Spot(Spotlight),
 }

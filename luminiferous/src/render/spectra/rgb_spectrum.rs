@@ -62,6 +62,12 @@ impl SpectrumT for RgbSpectrum {
     fn y(&self) -> f32 {
         0.212671 * self[0] + 0.715160 * self[1] + 0.072169 * self[2]
     }
+
+    fn exp(&self) -> Self {
+        Self {
+            c: self.c.map(|x| x.exp()),
+        }
+    }
 }
 
 impl Deref for RgbSpectrum {
@@ -93,6 +99,15 @@ impl IndexMut<usize> for RgbSpectrum {
     #[inline]
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         &mut self.c[i]
+    }
+}
+
+impl Neg for RgbSpectrum {
+    type Output = RgbSpectrum;
+    fn neg(self) -> Self::Output {
+        RgbSpectrum {
+            c: self.c.map(|x| -x),
+        }
     }
 }
 

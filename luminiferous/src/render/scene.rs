@@ -1,8 +1,6 @@
 use std::path::Path;
 
-use crate::bsdfs::BsdfFlags;
 use crate::lights::AreaLight;
-use crate::materials::MaterialT;
 use crate::prelude::*;
 use crate::{
     aggregates::{Aggregate, AggregateT, Bvh},
@@ -37,15 +35,12 @@ impl Scene {
         }
     }
 
-    pub fn test_visibility(&self, visibility: Visibility) -> bool {
+    pub fn unoccluded(&self, visibility: Visibility) -> bool {
         STATS.shadow_intersection_tests.inc();
 
         if let Some(intersection) = self.aggregate.intersect_p(visibility.ray).0 {
             if intersection.shape_intersection.t < visibility.end.distance(visibility.ray.o)
                 && intersection.shape_intersection.t > 0.0
-                && !self.materials[intersection.primitive.material_index]
-                    .bsdf_flags()
-                    .contains(BsdfFlags::Null)
             {
                 return false;
             }

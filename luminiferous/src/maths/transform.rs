@@ -11,6 +11,7 @@ pub struct Transform3 {
 
 impl Transform3 {
     pub fn new(matrix: Matrix4) -> Self {
+        
         Self {
             matrix,
             inverse: matrix.inverse(),

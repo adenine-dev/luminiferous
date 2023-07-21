@@ -1,7 +1,6 @@
 use crate::prelude::*;
-use crate::spectra::SpectrumT;
 use crate::{
-    primitive::SurfaceInteraction,
+    primitive::Interaction,
     spectra::Spectrum,
     textures::{SpectralTexture, TextureT},
 };
@@ -15,7 +14,6 @@ pub struct Environment {
 impl Environment {
     pub fn new(radiance: SpectralTexture) -> Self {
         STATS.lights_created.inc();
-        let extent = radiance.extent();
 
         Self { radiance }
     }
@@ -27,10 +25,10 @@ impl LightT for Environment {
     }
 
     fn l_e(&self, wi: Vector3) -> Spectrum {
-        let wi = ((Matrix4::from_axis_angle(Vector3::Y, -core::f32::consts::FRAC_PI_3 - 0.2)
-            * wi.extend(0.0))
-        .truncate())
-        .normalize();
+        // let wi = ((Matrix4::from_axis_angle(Vector3::Y, -core::f32::consts::FRAC_PI_3 - 0.2)
+        //     * wi.extend(0.0))
+        // .truncate())
+        // .normalize();
         self.radiance.eval_uv(
             Point2::new(
                 -wi.z.atan2(wi.x) / core::f32::consts::TAU,
@@ -39,23 +37,21 @@ impl LightT for Environment {
         )
     }
 
-    fn sample_li(&self, si: &SurfaceInteraction, u: Point2) -> LightSample {
-        self.sample(si.p, si.n, u)
-    }
-
-    fn sample(&self, p: Point3, n: Normal3, u: Point2) -> LightSample {
-        let frame = Frame3::new(n);
-        let mut wi = -frame.to_local(warp::square_to_uniform_hemisphere(u).normalize());
-        if wi.dot(n) < 0.0 {
-            wi = -wi;
+    fn sample_li(&self, interaction: &Interaction, u: Point2) -> LightSample {
+        let frame = Frame3::new(interaction.n);
+        let mut wo = -frame.to_local(warp::square_to_uniform_hemisphere(u).normalize());
+        if wo.dot(interaction.n) < 0.0 {
+            wo = -wo;
         }
 
+        let visibility_ray = interaction.spawn_ray(wo);
+
         LightSample {
-            wo: wi,
-            li: self.l_e(wi),
+            wo,
+            li: self.l_e(wo),
             visibility: Visibility {
-                ray: Ray::new(p + n * 1e-6, wi),
-                end: p + wi * 1.0e7,
+                ray: visibility_ray,
+                end: visibility_ray.at(1.0e7),
             },
         }
     }

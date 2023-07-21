@@ -1,8 +1,6 @@
 use crate::prelude::*;
-use crate::{
-    primitive::{Primitive, SurfaceInteraction},
-    spectra::Spectrum,
-};
+use crate::primitive::Interaction;
+use crate::{primitive::Primitive, spectra::Spectrum};
 
 use super::{LightSample, LightT, Visibility};
 
@@ -33,19 +31,15 @@ impl LightT for AreaLight {
         self.radiance
     }
 
-    fn sample_li(&self, si: &SurfaceInteraction, u: Point2) -> LightSample {
-        self.sample(si.p, si.n, u)
-    }
-
-    fn sample(&self, p: Point3, n: Normal3, u: Point2) -> LightSample {
+    fn sample_li(&self, interaction: &Interaction, u: Point2) -> LightSample {
         let shape_sample = self.primitive.sample(u);
-        let wo = face_forward((shape_sample.p - p).normalize(), n);
+        let wo = (shape_sample.p - interaction.p).normalize();
 
         LightSample {
             li: self.l_e(wo),
             wo,
             visibility: Visibility {
-                ray: Ray::new(p + face_forward(n, wo) * 1e-6, wo),
+                ray: interaction.spawn_ray(wo),
                 end: shape_sample.p,
             },
         }
