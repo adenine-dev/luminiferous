@@ -1,3 +1,5 @@
+use russimp::face;
+
 use crate::prelude::*;
 
 use crate::shapes::ShapeSample;
@@ -29,7 +31,7 @@ pub struct Interaction {
 impl Interaction {
     #[inline]
     pub fn spawn_ray(&self, d: Vector3) -> Ray {
-        Ray::new(self.p + self.n * 1e-4, d)
+        Ray::new(self.p + face_forward(self.n, d) * 1e-4, d)
     }
 
     #[inline]

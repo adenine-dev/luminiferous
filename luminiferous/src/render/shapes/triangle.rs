@@ -18,54 +18,37 @@ impl Triangle {
 
 impl ShapeT for Triangle {
     fn intersect(&self, ray: Ray) -> ShapeIntersection {
-        let a_t = self.v[0] - ray.o;
-        let b_t = self.v[1] - ray.o;
-        let c_t = self.v[2] - ray.o;
+        // uses the Möller Trumbore intersection algorithm
 
-        let kz = max_dimension_v3(ray.d.abs());
-        let kx = (kz + 1) % 3;
-        let ky = (kx + 1) % 3;
-        let d = permute_v3(ray.d, kx, ky, kz);
-        let mut a_t = permute_v3(a_t, kx, ky, kz);
-        let mut b_t = permute_v3(b_t, kx, ky, kz);
-        let mut c_t = permute_v3(c_t, kx, ky, kz);
+        const EPSILON: f32 = 1e-7;
 
-        let s_x = -d.x / d.z;
-        let s_y = -d.y / d.z;
-        let s_z = d.z.recip();
-        a_t.x += s_x * a_t.z;
-        a_t.y += s_y * a_t.z;
-        b_t.x += s_x * b_t.z;
-        b_t.y += s_y * b_t.z;
-        c_t.x += s_x * c_t.z;
-        c_t.y += s_y * c_t.z;
+        let edge1 = self.v[1] - self.v[0];
+        let edge2 = self.v[2] - self.v[0];
+        let h = ray.d.cross(edge2);
+        let a = edge1.dot(h);
 
-        let e0 = b_t.x * c_t.y - b_t.y * c_t.x;
-        let e1 = c_t.x * a_t.y - c_t.y * a_t.x;
-        let e2 = a_t.x * b_t.y - a_t.y * b_t.x;
-
-        let det = e0 + e1 + e2;
-
-        if ((e0 < 0.0 || e1 < 0.0 || e2 < 0.0) && (e0 > 0.0 || e1 > 0.0 || e2 > 0.0)) || det == 0.0
-        {
+        if -EPSILON < a && a < EPSILON {
             return ShapeIntersection { t: -1.0 };
         }
 
-        a_t.z *= s_z;
-        b_t.z *= s_z;
-        c_t.z *= s_z;
-        let t_scaled = e0 * a_t.z + e1 * b_t.z + e2 * c_t.z;
+        let f = 1.0 / a;
+        let s = ray.o - self.v[0];
+        let u = f * s.dot(h);
 
-        if (det < 0.0 && (t_scaled >= 0.0/*|| t_scaled < t_max * det*/))
-            || (det > 0.0 && (t_scaled <= 0.0/*|| t_scaled > t_max * det*/))
-        {
+        if !(0.0..=1.0).contains(&u) {
             return ShapeIntersection { t: -1.0 };
         }
 
-        let inv_det = det.recip();
-        let t = t_scaled * inv_det;
+        let q = s.cross(edge1);
+        let v = f * ray.d.dot(q);
 
-        ShapeIntersection { t }
+        if v < 0.0 || u + v > 1.0 {
+            return ShapeIntersection { t: -1.0 };
+        }
+
+        ShapeIntersection {
+            t: f * edge2.dot(q),
+        }
     }
 
     fn get_surface_interaction(
@@ -102,10 +85,6 @@ impl ShapeT for Triangle {
                 (duv12.y * dp02 - (duv02.y * dp12)) * invdet,
                 (-duv12.x * dp02 + (duv02.x * dp12)) * invdet,
             )
-            // (
-            //     (duv12[1] * dp02 - duv02[1] * dp12) * invdet,
-            //     (-duv12[0] * dp02 + duv02[0] * dp12) * invdet,
-            // )
         };
 
         ShapeInteraction {

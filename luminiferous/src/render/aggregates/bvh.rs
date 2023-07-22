@@ -157,8 +157,6 @@ impl Bvh {
                             buckets[b].1 = buckets[b].1.union(primitive_info[i].bounds);
                         }
 
-                        // dbg!(buckets);
-
                         let mut costs = [0.0; NUM_BUCKETS - 1];
                         for i in 0..NUM_BUCKETS - 1 {
                             let mut b0 = buckets[0].1;
@@ -302,53 +300,6 @@ impl Bvh {
 
         ret
     }
-
-    fn intersect_node(
-        &self,
-        idx: usize,
-        ray: Ray,
-        mut t_max: f32,
-        n: &mut usize,
-    ) -> (Option<Intersection>, usize) {
-        *n += 1;
-        if self.nodes[idx].bounds.intersects(ray, 0.0, t_max) {
-            let mut intersection = None;
-
-            match &self.nodes[idx].node_type {
-                BvhNodeType::Leaf(leaf) => {
-                    self.primitives
-                        .iter()
-                        .skip(leaf.index)
-                        .take(leaf.num_primitives)
-                        .for_each(|p| {
-                            let i = p.intersect(ray);
-                            *n += 1;
-                            if let Some(i) = i {
-                                if i.shape_intersection.t < t_max {
-                                    t_max = i.shape_intersection.t;
-                                    intersection = Some(i);
-                                }
-                            }
-                        });
-                }
-                BvhNodeType::Interior(interior) => {
-                    for c in interior.children {
-                        let (i, _u) = self.intersect_node(c, ray, t_max, n);
-                        if let Some(i) = i {
-                            if i.shape_intersection.t < t_max {
-                                t_max = i.shape_intersection.t;
-                                intersection = Some(i);
-                            }
-                        }
-                    }
-                }
-            }
-
-            (intersection, *n)
-        } else {
-            (None, *n)
-        }
-    }
 }
 
 impl AggregateT for Bvh {
@@ -356,7 +307,56 @@ impl AggregateT for Bvh {
         if self.nodes.is_empty() {
             return (None, 0);
         }
-        self.intersect_node(self.nodes.len() - 1, ray, f32::INFINITY, &mut 0)
+
+        // NOTE: this is in theory not enough to store the worst case number of nodes that are still yet to be visited.
+        // However in practice this is more than double what's needed to store a million+ shape scene, so its *probably* fine.
+        const TO_VISIT_LEN: usize = 64;
+        let mut to_visit = [INVALID_IDX; TO_VISIT_LEN];
+        let mut node_idx = self.nodes.len() - 1;
+        let mut to_visit_idx = 0;
+
+        let mut num_intersection_tests = 0;
+        let mut intersection = None;
+        let mut t_max = f32::INFINITY;
+
+        loop {
+            let node = &self.nodes[node_idx];
+
+            num_intersection_tests += 1;
+            if node.bounds.intersects(ray, 0.0, t_max) {
+                match &node.node_type {
+                    BvhNodeType::Interior(interior) => {
+                        node_idx = interior.children[0];
+                        to_visit_idx += 1;
+                        to_visit[to_visit_idx] = interior.children[1];
+                        continue;
+                    }
+                    BvhNodeType::Leaf(leaf) => {
+                        self.primitives
+                            .iter()
+                            .skip(leaf.index)
+                            .take(leaf.num_primitives)
+                            .for_each(|p| {
+                                num_intersection_tests += 1;
+                                if let Some(i) = p.intersect(ray) {
+                                    if i.shape_intersection.t < t_max {
+                                        t_max = i.shape_intersection.t;
+                                        intersection = Some(i);
+                                    }
+                                }
+                            });
+                    }
+                }
+            }
+
+            if to_visit_idx == 0 {
+                break;
+            }
+            node_idx = to_visit[to_visit_idx];
+            to_visit_idx -= 1;
+        }
+
+        (intersection, num_intersection_tests)
     }
 
     fn bounds(&self) -> Bounds3 {

@@ -100,24 +100,13 @@ impl Bounds3 {
         }
     }
 
-    pub fn intersects(&self, ray: Ray, mut t_min: f32, mut t_max: f32) -> bool {
-        for a in 0..3 {
-            let inv_d = 1.0 / ray.d[a];
-            let mut t0 = (self.min[a] - ray.o[a]) * inv_d;
-            let mut t1 = (self.max[a] - ray.o[a]) * inv_d;
+    pub fn intersects(&self, ray: Ray, t_min: f32, t_max: f32) -> bool {
+        // for whatever reason this runs significantly (~15%) faster than the traditional loop method.
+        // only tested on arm
+        let inv_d = ray.d.recip();
+        let t0 = (self.min - ray.o) * inv_d;
+        let t1 = (self.max - ray.o) * inv_d;
 
-            if t0 > t1 {
-                (t0, t1) = (t1, t0);
-            }
-
-            t_min = t_min.max(t0);
-            t_max = t_max.min(t1);
-
-            if t_min >= t_max {
-                return false;
-            }
-        }
-
-        true
+        t_min.max(t0.min(t1).max_element()) < t_max.min(t0.max(t1).min_element())
     }
 }

@@ -27,6 +27,7 @@ const REPORT_DURATION: u128 = 100;
 
 impl TevReporter {
     pub fn new(no_tev: bool, extent: UExtent2) -> Self {
+        // let no_tev = true;
         let error_self = Self {
             client: None,
             last_report: Instant::now(),
