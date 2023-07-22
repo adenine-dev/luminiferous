@@ -112,7 +112,7 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 5 {
+        let scene = match 3 {
             // sphere pyramid
             0 => {
                 let mut scene_builder = SceneBuilder::new();

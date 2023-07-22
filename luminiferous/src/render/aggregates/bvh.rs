@@ -7,13 +7,17 @@ use super::AggregateT;
 
 const INVALID_IDX: usize = usize::MAX;
 
+// NOTE: using a u32 instead of a usize (on 64 bit) makes intersection code notably faster (~10%).
+// It also places a platform independent limit of 2^32 nodes in a bvh.
+type IndexType = u32;
+
 struct LeafNode {
-    num_primitives: usize,
-    index: usize,
+    num_primitives: IndexType,
+    index: IndexType,
 }
 
 struct InteriorNode {
-    children: [usize; 2],
+    children: [IndexType; 2],
 }
 
 enum BvhNodeType {
@@ -54,7 +58,7 @@ impl Bvh {
                 bounds: p.make_bounds(),
                 node_type: BvhNodeType::Leaf(LeafNode {
                     num_primitives: 1,
-                    index: i,
+                    index: i as IndexType,
                 }),
             })
             .collect::<Vec<_>>();
@@ -89,7 +93,9 @@ impl Bvh {
 
             nodes.push(BvhNode {
                 bounds,
-                node_type: BvhNodeType::Interior(InteriorNode { children }),
+                node_type: BvhNodeType::Interior(InteriorNode {
+                    children: children.map(|c| c as IndexType),
+                }),
             });
         }
 
@@ -119,15 +125,18 @@ impl Bvh {
             nodes.push(BvhNode {
                 bounds,
                 node_type: BvhNodeType::Leaf(LeafNode {
-                    num_primitives: 1,
-                    index: ordered_primitives.len() - 1,
+                    num_primitives: 1 as IndexType,
+                    index: (ordered_primitives.len() - 1) as IndexType,
                 }),
             });
         } else {
             let mut centroid_bounds = Bounds3::from_point(primitive_info[start].centroid);
-            for i in start + 1..end {
-                centroid_bounds = centroid_bounds.expand(primitive_info[i].centroid);
-            }
+            primitive_info
+                .iter()
+                .take(end)
+                .skip(start + 1)
+                .for_each(|pi| centroid_bounds = centroid_bounds.expand(pi.centroid));
+
             let dim = centroid_bounds.max_extent_idx();
 
             let mut middle = (start + end) / 2;
@@ -150,12 +159,11 @@ impl Bvh {
                                 as usize)
                                 .min(NUM_BUCKETS - 1)
                         };
-
-                        for i in start..end {
-                            let b = get_bucket(&primitive_info[i]);
+                        primitive_info.iter().take(end).skip(start).for_each(|pi| {
+                            let b = get_bucket(pi);
                             buckets[b].0 += 1;
-                            buckets[b].1 = buckets[b].1.union(primitive_info[i].bounds);
-                        }
+                            buckets[b].1 = buckets[b].1.union(pi.bounds);
+                        });
 
                         let mut costs = [0.0; NUM_BUCKETS - 1];
                         for i in 0..NUM_BUCKETS - 1 {
@@ -181,12 +189,17 @@ impl Bvh {
                         let mut min_cost = costs[0];
                         let mut min_idx = 0;
 
-                        for i in 1..NUM_BUCKETS - 1 {
-                            if costs[i] < min_cost {
-                                min_cost = costs[i];
-                                min_idx = i;
-                            }
-                        }
+                        costs
+                            .iter()
+                            .enumerate()
+                            .take(NUM_BUCKETS - 1)
+                            .skip(1)
+                            .for_each(|(i, &cost)| {
+                                if cost < min_cost {
+                                    min_cost = cost;
+                                    min_idx = i;
+                                }
+                            });
 
                         let leaf_cost = n_primitives as f32;
                         const MAX_PRIMITIVES_IN_LEAF: usize = 4;
@@ -209,8 +222,8 @@ impl Bvh {
                             nodes.push(BvhNode {
                                 bounds,
                                 node_type: BvhNodeType::Leaf(LeafNode {
-                                    num_primitives: n_primitives,
-                                    index,
+                                    num_primitives: n_primitives as IndexType,
+                                    index: index as IndexType,
                                 }),
                             });
                             return nodes.len() - 1;
@@ -237,7 +250,9 @@ impl Bvh {
             );
             nodes.push(BvhNode {
                 bounds,
-                node_type: BvhNodeType::Interior(InteriorNode { children: [a, b] }),
+                node_type: BvhNodeType::Interior(InteriorNode {
+                    children: [a as IndexType, b as IndexType],
+                }),
             });
         }
 
@@ -278,6 +293,13 @@ impl Bvh {
     }
 
     pub fn new(primitives: Vec<Primitive>) -> Self {
+        if primitives.len() * 2 - 1 > u32::MAX as usize {
+            panic!(
+                "too many primitives, the maximum number of supported primitives is 2^31. Found {}",
+                primitives.len()
+            );
+        }
+
         if primitives.is_empty() {
             return Self {
                 primitives,
@@ -317,7 +339,7 @@ impl AggregateT for Bvh {
 
         let mut num_intersection_tests = 0;
         let mut intersection = None;
-        let mut t_max = f32::INFINITY;
+        let mut t_max = f32::MAX;
 
         loop {
             let node = &self.nodes[node_idx];
@@ -326,16 +348,16 @@ impl AggregateT for Bvh {
             if node.bounds.intersects(ray, 0.0, t_max) {
                 match &node.node_type {
                     BvhNodeType::Interior(interior) => {
-                        node_idx = interior.children[0];
+                        node_idx = interior.children[0] as usize;
                         to_visit_idx += 1;
-                        to_visit[to_visit_idx] = interior.children[1];
+                        to_visit[to_visit_idx] = interior.children[1] as usize;
                         continue;
                     }
                     BvhNodeType::Leaf(leaf) => {
                         self.primitives
                             .iter()
-                            .skip(leaf.index)
-                            .take(leaf.num_primitives)
+                            .skip(leaf.index as usize)
+                            .take(leaf.num_primitives as usize)
                             .for_each(|p| {
                                 num_intersection_tests += 1;
                                 if let Some(i) = p.intersect(ray) {
@@ -360,6 +382,6 @@ impl AggregateT for Bvh {
     }
 
     fn bounds(&self) -> Bounds3 {
-        self.nodes.get(0).map(|n| n.bounds).unwrap_or_default()
+        self.nodes.last().map(|n| n.bounds).unwrap_or_default()
     }
 }
