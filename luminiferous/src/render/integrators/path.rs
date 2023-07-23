@@ -153,7 +153,7 @@ impl IntegratorT for PathIntegrator {
                                 let (interaction, n) = scene.intersect(ray);
                                 _num_tests += n;
 
-                                let mi = if let Some(medium) = &medium && self.volumetric {
+                                let mi = if let Some(medium) = &medium && self.volumetric  {
                                     medium.sample(
                                         ray,
                                         interaction.as_ref().map(|i| i.t).unwrap_or(1e7),
@@ -180,7 +180,7 @@ impl IntegratorT for PathIntegrator {
                                             .phase_function
                                             .as_ref()
                                             .unwrap()
-                                            .sample(pixel_sampler.next_2d());
+                                            .sample(mi, pixel_sampler.next_2d());
                                         ray = mi.as_interaction().spawn_ray(sample.wo);
                                     }
                                 } else if let Some(si) = interaction {

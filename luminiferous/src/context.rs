@@ -1,6 +1,5 @@
 use std::{path::Path, time::Instant};
 
-use crate::lights::Spotlight;
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
     aggregates::{Aggregate, Bvh, Vector},
@@ -32,6 +31,7 @@ use crate::{
     textures::{CheckerboardTexture, ConstantTexture, SpectralTexture, TextureMapping},
     textures::{Texture, UvTexture},
 };
+use crate::{lights::Spotlight, phase_functions::HenyeyGreensteinPhaseFunction};
 
 pub struct Context {
     scene: Scene,
@@ -112,7 +112,7 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 3 {
+        let scene = match 6 {
             // sphere pyramid
             0 => {
                 let mut scene_builder = SceneBuilder::new();
@@ -432,7 +432,10 @@ impl Context {
                     // MediumInterface::none(),
                     MediumInterface::new(
                         Some(Medium::Homogeneous(HomogeneousMedium::new(
-                            PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                            // PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                            PhaseFunction::HenyeyGreenstein(HenyeyGreensteinPhaseFunction::new(
+                                0.7,
+                            )),
                             Spectrum::from_rgb(0.85, 1.0, 0.85),
                             Spectrum::splat(1.0),
                             1.0,
@@ -557,6 +560,112 @@ impl Context {
                     "assets/brdfs/aniso_metallic_paper_copper_rgb.bsdf",
                     "assets/brdfs/satin_rosaline_rgb.bsdf",
                     Transform3::translate(Vector3::new(-size, 0.0, size * 0.5)),
+                );
+
+                sb.light(Light::Environment(Environment::new(
+                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
+                        "assets/material_test/christmas_photo_studio_07.exr",
+                    ))),
+                )));
+
+                sb.build()
+            }
+            // hg
+            6 => {
+                let mut sb = SceneBuilder::new();
+                sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
+                    Film::new(
+                        UVector2::new(width, height),
+                        TentFilter::new(Vector2::splat(1.0)),
+                    ),
+                    Transform3::new(
+                        Matrix4::look_at_rh(
+                            Point3::new(0.0, 3.0, 8.0) * 8.0,
+                            Point3::new(0.0, 0.51, 0.0) * 11.0,
+                            Vector3::Y,
+                        )
+                        .inverse(),
+                    ),
+                    0.3,
+                    0.0,
+                    0.0,
+                    None,
+                )));
+
+                load_obj(
+                    &mut sb,
+                    "assets/material_test/backdrop.obj",
+                    Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
+                        SpectralTexture::Checkerboard(CheckerboardTexture::new(
+                            Spectrum::from_rgb(0.3, 0.3, 0.3),
+                            Spectrum::from_rgb(0.8, 0.8, 0.8),
+                            TextureMapping::new(Matrix3::from_scale(
+                                Vector2::splat(11.8) * Vector2::new(2.0, 1.0),
+                            )),
+                        )),
+                    )))),
+                    Some(Transform3::scale(
+                        Vector3::splat(2.5) * (Vector3::X + Vector3::splat(1.0)),
+                    )),
+                    MediumInterface::none(),
+                );
+
+                load_obj(
+                    &mut sb,
+                    "assets/stanford_bunny/stanford_bunny.obj",
+                    Material::Direct(DirectMaterial::new(Bsdf::Dielectric(Dielectric::new(
+                        ior::POLYCARBONATE,
+                        ior::AIR,
+                        Spectrum::from_rgb(1.0, 1.0, 1.0),
+                    )))),
+                    // Material::Direct(DirectMaterial::new(Bsdf::Null(NullBsdf::new()))),
+                    Some(
+                        Transform3::translate(Vector3::new(-6.0 + 0.1, 0.0, 0.0))
+                            * Transform3::scale(Vector3::splat(8.0))
+                            * Transform3::rotate(Vector3::new(0.0, 0.7, 0.0)),
+                    ),
+                    // MediumInterface::none(),
+                    MediumInterface::new(
+                        Some(Medium::Homogeneous(HomogeneousMedium::new(
+                            // PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                            PhaseFunction::HenyeyGreenstein(HenyeyGreensteinPhaseFunction::new(
+                                0.7,
+                            )),
+                            Spectrum::from_rgb(0.85, 1.0, 0.85),
+                            Spectrum::splat(1.0),
+                            1.0,
+                        ))),
+                        None,
+                    ),
+                );
+
+                load_obj(
+                    &mut sb,
+                    "assets/stanford_bunny/stanford_bunny.obj",
+                    Material::Direct(DirectMaterial::new(Bsdf::Dielectric(Dielectric::new(
+                        ior::POLYCARBONATE,
+                        ior::AIR,
+                        Spectrum::from_rgb(1.0, 1.0, 1.0),
+                    )))),
+                    // Material::Direct(DirectMaterial::new(Bsdf::Null(NullBsdf::new()))),
+                    Some(
+                        Transform3::translate(Vector3::new(6.0 + 0.1, 0.0, 0.0))
+                            * Transform3::scale(Vector3::splat(8.0))
+                            * Transform3::rotate(Vector3::new(0.0, -0.7, 0.0)),
+                    ),
+                    // MediumInterface::none(),
+                    MediumInterface::new(
+                        Some(Medium::Homogeneous(HomogeneousMedium::new(
+                            // PhaseFunction::Isotropic(IsotropicPhaseFunction::new()),
+                            PhaseFunction::HenyeyGreenstein(HenyeyGreensteinPhaseFunction::new(
+                                -0.7,
+                            )),
+                            Spectrum::from_rgb(0.85, 1.0, 0.85),
+                            Spectrum::splat(1.0),
+                            1.0,
+                        ))),
+                        None,
+                    ),
                 );
 
                 sb.light(Light::Environment(Environment::new(

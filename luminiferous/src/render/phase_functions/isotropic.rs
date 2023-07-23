@@ -14,7 +14,7 @@ impl IsotropicPhaseFunction {
 }
 
 impl PhaseFunctionT for IsotropicPhaseFunction {
-    fn sample(&self, u: Point2) -> PhaseFunctionSample {
+    fn sample(&self, _mi: &MediumInteraction, u: Point2) -> PhaseFunctionSample {
         PhaseFunctionSample {
             wo: warp::square_to_uniform_sphere(u),
             // spectrum: Spectrum::splat(1.0),
