@@ -68,6 +68,12 @@ impl SpectrumT for RgbSpectrum {
             c: self.c.map(|x| x.exp()),
         }
     }
+
+    fn sqrt(&self) -> Self {
+        Self {
+            c: self.c.map(|x| x.sqrt()),
+        }
+    }
 }
 
 impl Deref for RgbSpectrum {

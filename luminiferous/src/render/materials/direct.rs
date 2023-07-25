@@ -22,11 +22,17 @@ impl DirectMaterial {
 }
 
 impl MaterialT for DirectMaterial {
-    fn sample(&self, wi_world: Vector3, si: &SurfaceInteraction, u: Point2) -> BsdfSample {
+    fn sample(
+        &self,
+        wi_world: Vector3,
+        si: &SurfaceInteraction,
+        u1: f32,
+        u2: Point2,
+    ) -> BsdfSample {
         let frame = make_frame(si);
         let wi = frame.to_local(wi_world).normalize();
 
-        let mut sample = self.bsdf.sample(wi, si, u);
+        let mut sample = self.bsdf.sample(wi, si, u1, u2);
         sample.wo = frame.to_world(sample.wo).normalize();
         sample
     }

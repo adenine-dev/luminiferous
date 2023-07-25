@@ -3,13 +3,15 @@ use std::{path::Path, time::Instant};
 #[allow(unused_imports)] // make prototyping easier FIXME: remove
 use crate::{
     aggregates::{Aggregate, Bvh, Vector},
+    bsdfs::PlasticBsdf,
     bsdfs::{ior, Dielectric, MeasuredBsdf},
     bsdfs::{Bsdf, Lambertian},
-    bsdfs::{Conductor, NullBsdf},
+    bsdfs::{MirrorBsdf, NullBsdf},
     cameras::{Camera, PerspectiveCamera},
     core::Array2d,
     film::Film,
     integrators::{Integrator, IntegratorT, PathIntegrator},
+    lights::Spotlight,
     lights::{AreaLight, DistantLight},
     lights::{Environment, Light, PointLight},
     loaders::{AssimpLoader, Loader},
@@ -17,6 +19,7 @@ use crate::{
     materials::MixMaterial,
     materials::{DirectMaterial, Material},
     media::{HomogeneousMedium, Medium, MediumInterface},
+    phase_functions::HenyeyGreensteinPhaseFunction,
     phase_functions::{IsotropicPhaseFunction, PhaseFunction},
     prelude::*,
     primitive::Primitive,
@@ -31,7 +34,6 @@ use crate::{
     textures::{CheckerboardTexture, ConstantTexture, SpectralTexture, TextureMapping},
     textures::{Texture, UvTexture},
 };
-use crate::{lights::Spotlight, phase_functions::HenyeyGreensteinPhaseFunction};
 
 pub struct Context {
     scene: Scene,
@@ -50,8 +52,10 @@ impl Context {
 
         let start = Instant::now();
         // let (width, height) = (3840, 2160);
+        // let (width, height) = (2160, 3840);
         // let (width, height) = (1600, 900);
-        let (width, height) = (1280, 720);
+        // let (width, height) = (1280, 720);
+        let (width, height) = (720, 1280);
         // let (width, height) = (800, 450);
         // let (width, height) = (800, 800);
         // let (width, height) = (1200, 1200);
@@ -112,20 +116,18 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 6 {
-            // sphere pyramid
+        let scene = match 4 {
             0 => {
-                let mut scene_builder = SceneBuilder::new();
-                scene_builder.camera(Camera::Projective(PerspectiveCamera::new_perspective(
+                let mut sb = SceneBuilder::new();
+                sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
                     Film::new(
                         UVector2::new(width, height),
                         TentFilter::new(Vector2::splat(1.0)),
                     ),
                     Transform3::new(
                         Matrix4::look_at_rh(
-                            // Point3::new(-6.0, 6.0, 6.0),
-                            Point3::new(-10.0, 5.0, -7.0),
-                            Point3::new(0.0, 1.0, 0.0),
+                            Point3::new(-2.0, 2.0, 2.0),
+                            Point3::new(0.0, 0.0, 0.0),
                             Vector3::Y,
                         )
                         .inverse(),
@@ -136,65 +138,7 @@ impl Context {
                     None,
                 )));
 
-                const N: u32 = 20;
-
-                for n in 0..N {
-                    let w = N - n;
-                    for x in 0..w {
-                        for z in 0..w {
-                            let r = 0.5;
-                            let y = n;
-                            let p = Point3::new(
-                                x as f32 - (N as f32 / 2.0) + r + (n as f32 / 2.0),
-                                y as f32 - (n as f32 / 3.0f32.sqrt() * r),
-                                z as f32 - (N as f32 / 2.0) + r + (n as f32 / 2.0),
-                            );
-
-                            scene_builder.primitive(
-                                Shape::Sphere(Sphere::new(r)),
-                                Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
-                                    Lambertian::new(SpectralTexture::Constant(
-                                        ConstantTexture::new(Spectrum::from_rgb(
-                                            (z as f32 / N as f32 * 0.7) + 0.2,
-                                            (x as f32 / N as f32 * 0.7) + 0.2,
-                                            (y as f32 / N as f32 * 0.7) + 0.2,
-                                        )),
-                                    )),
-                                ))),
-                                Some(Transform3::translate(p)),
-                                MediumInterface::none(),
-                            );
-                        }
-                    }
-                }
-
-                // for x in 0..N {
-                //     for y in 0..N {
-                //         for z in 0..N {
-                //             let R = 0.5;
-                //             let p = Point3::new(
-                //                 x as f32 - (N as f32 / 2.0) + R,
-                //                 y as f32,
-                //                 z as f32 - (N as f32 / 2.0) + R,
-                //             );
-
-                //             world.push(Primitive::new(
-                //                 Shape::Sphere(Sphere::new(p, R)),
-                //                 Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
-                //                     Lambertian::new(Texture::Constant(ConstantTexture::new(
-                //                         Spectrum::from_rgb(
-                //                             (x as f32 / N as f32 * 0.7) + 0.2,
-                //                             (y as f32 / N as f32 * 0.7) + 0.2,
-                //                             (z as f32 / N as f32 * 0.7) + 0.2,
-                //                         ),
-                //                     ))),
-                //                 ))),
-                //             ));
-                //         }
-                //     }
-                // }
-
-                scene_builder.primitive(
+                sb.primitive(
                     Shape::Sphere(Sphere::new(50000.0)),
                     Material::Direct(DirectMaterial::new(Bsdf::Lambertian(Lambertian::new(
                         SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
@@ -205,13 +149,13 @@ impl Context {
                     MediumInterface::none(),
                 );
 
-                scene_builder.light(Light::Environment(Environment::new(
-                    SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
-                        0.8, 0.8, 0.8,
+                sb.light(Light::Environment(Environment::new(
+                    SpectralTexture::Image(ImageTexture::from_path(Path::new(
+                        "assets/material_test/christmas_photo_studio_07.exr",
                     ))),
                 )));
 
-                scene_builder.build()
+                sb.build()
             }
             // dragon
             1 => {
@@ -321,8 +265,8 @@ impl Context {
                     Transform3::new(
                         Matrix4::look_at_rh(
                             // Point3::new(0.0, 0.0, 8.0),
-                            Point3::new(0.0, 2.0, 8.0),
-                            Point3::new(0.0, 0.0, 0.0),
+                            Point3::new(0.0, 5.0, 10.0),
+                            Point3::new(0.0, 1.0, 0.0),
                             Vector3::Y,
                         )
                         .inverse(),
@@ -332,8 +276,6 @@ impl Context {
                     0.0,
                     None,
                 )));
-
-                let r = 1.0;
 
                 load_obj(
                     &mut sb,
@@ -345,24 +287,36 @@ impl Context {
                             TextureMapping::new(Matrix3::from_scale(Vector2::splat(11.8))),
                         )),
                     )))),
-                    Some(Transform3::translate(Vector3::new(0.0, -r, 0.0))),
+                    None,
+                    // Some(Transform3::translate(Vector3::new(0.0, 0.0, 0.0))),
                     MediumInterface::none(),
                 );
 
-                sb.primitive(
-                    Shape::Sphere(Sphere::new(r)),
-                    Material::Direct(DirectMaterial::new(
-                        // Bsdf::Measured(
-                        //     MeasuredBsdf::load_from_file(Path::new(
-                        //         "assets/brdfs/weta_brushed_steel_satin_pink_rgb.bsdf",
-                        //     ))
-                        //     .unwrap(),
-                        // ),
-                        Bsdf::Lambertian(Lambertian::new(SpectralTexture::Constant(
-                            ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8)),
+                load_obj(
+                    &mut sb,
+                    "assets/material_test/mori_knob.obj",
+                    // Material::Direct(DirectMaterial::new(Bsdf::Conductor(ConductorBsdf::new(
+                    //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                    //         // 3.540174, 2.311131, 1.668593,
+                    //         // 3.98316, 2.385721, 1.603215,
+                    //         9.223869, 6.269523, 4.837001,
+                    //     ))),
+                    //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                    //         // 0.265787, 0.19561, 0.22092,
+                    //         // 0.143119, 0.374957, 1.442479,
+                    //         1.65746, 0.880369, 0.521229,
+                    //     ))),
+                    // )))),
+                    Material::Direct(DirectMaterial::new(Bsdf::Plastic(PlasticBsdf::new(
+                        SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(
+                            0.4, 0.4, 0.95,
                         ))),
-                    )),
+                        ior::POLYPROPYLENE,
+                        ior::AIR,
+                        0.5,
+                    )))),
                     None,
+                    // Some(Transform3::translate(Vector3::new(0.0, -r, 0.0))),
                     MediumInterface::none(),
                 );
 
@@ -456,12 +410,45 @@ impl Context {
             4 => {
                 let mut sb = SceneBuilder::new();
                 sb.load_with::<PbrtLoader>(
-                    Path::new("assets/scenes/dragon/scene-v4.pbrt"),
+                    Path::new("assets/scenes/staircase/scene-v4.pbrt"),
                     SceneCreationParams {
                         extent: UExtent2::new(width, height),
                     },
                 );
 
+                // sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
+                //     Film::new(
+                //         UVector2::new(width, height),
+                //         TentFilter::new(Vector2::splat(1.0)),
+                //     ),
+                //     Transform3::new(
+                //         Matrix4::look_at_rh(
+                //             // Point3::new(-6.0, 6.0, 6.0),
+                //             Point3::new(0.0, 1.7, 4.8),
+                //             Point3::new(0.0, 1.7, -1.0),
+                //             Vector3::Y,
+                //         )
+                //         .inverse(),
+                //     ),
+                //     (59.0f32).to_radians(),
+                //     0.0,
+                //     0.0,
+                //     None,
+                // )));
+
+                sb.area_light(AreaLight::new(
+                    Primitive {
+                        shape: Shape::Sphere(Sphere::new(0.5)),
+                        material_index: 0,
+                        area_light_index: None,
+                        world_to_object: Some(Transform3::translate(Vector3::new(-0.5, 7.5, -1.0))),
+                        medium_interface: MediumInterface::none(),
+                    },
+                    Spectrum::splat(10.0),
+                ));
+                // sb.light(Light::Environment(Environment::new(
+                //     SpectralTexture::Constant(ConstantTexture::new(Spectrum::splat(1.0))),
+                // )));
                 sb.build()
             }
             // material scene
@@ -685,8 +672,8 @@ impl Context {
         let sampler = Sampler::Stratified(StratifiedSampler::new(params.spp, params.seed, true));
         // let sampler = Sampler::Random(RandomSampler::new(params.spp, params.seed));
 
-        const MAX_BOUNCES: u32 = 10;
-        let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES, true));
+        const MAX_BOUNCES: u32 = 24;
+        let integrator = Integrator::Path(PathIntegrator::new(sampler, MAX_BOUNCES, false));
 
         let duration = start.elapsed();
         let ctx = Self { scene, integrator };

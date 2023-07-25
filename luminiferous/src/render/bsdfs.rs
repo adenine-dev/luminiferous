@@ -7,11 +7,17 @@ use crate::{primitive::SurfaceInteraction, spectra::Spectrum};
 mod lambertian;
 pub use lambertian::*;
 
-mod conductor;
-pub use conductor::*;
+mod mirror;
+pub use mirror::*;
 
 mod dielectric;
 pub use dielectric::*;
+
+mod conductor;
+pub use conductor::*;
+
+mod plastic;
+pub use plastic::*;
 
 mod measured;
 pub use measured::*;
@@ -39,20 +45,22 @@ bitflags! {
 
         // Lobes
         const DiffuseReflection = 1 << 2;
+        const GlossyReflection = 1 << 3;
 
-        const DeltaReflection = 1 << 3;
-        const DeltaTransmission = 1 << 4;
+        const DeltaReflection = 1 << 4;
+        const DeltaTransmission = 1 << 5;
 
         // Compound
         const Diffuse = Self::DiffuseReflection.bits();
-        const Smooth = Self::Diffuse.bits();
+        const Glossy = Self::GlossyReflection.bits();
+        const Smooth = Self::Diffuse.bits() | Self::Glossy.bits();
         const Delta = Self::DeltaReflection.bits() | Self::DeltaTransmission.bits();
     }
 }
 
 #[enum_dispatch]
 pub trait BsdfT {
-    fn sample(&self, wi: Vector3, si: &SurfaceInteraction, u: Point2) -> BsdfSample;
+    fn sample(&self, wi: Vector3, si: &SurfaceInteraction, u1: f32, u2: Point2) -> BsdfSample;
 
     fn eval(&self, si: &SurfaceInteraction, wi: Vector3, wo: Vector3) -> Spectrum;
 
@@ -63,8 +71,10 @@ pub trait BsdfT {
 #[derive(Debug, Clone)]
 pub enum Bsdf {
     Lambertian(Lambertian),
-    Conductor(Conductor),
+    Mirror(MirrorBsdf),
     Dielectric(Dielectric),
     Measured(MeasuredBsdf),
     Null(NullBsdf),
+    Plastic(PlasticBsdf),
+    Conductor(ConductorBsdf),
 }

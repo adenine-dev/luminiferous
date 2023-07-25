@@ -871,7 +871,7 @@ impl MeasuredBsdf {
 }
 
 impl BsdfT for MeasuredBsdf {
-    fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, u: Point2) -> BsdfSample {
+    fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, u1: f32, u2: Point2) -> BsdfSample {
         // return BsdfSample {
         //     wo: wi,
         //     sampled: BsdfFlags::Delta,
@@ -888,7 +888,7 @@ impl BsdfT for MeasuredBsdf {
         let phi_i = wi.y.atan2(wi.x);
 
         let params = [phi_i, theta_i];
-        let sample = Vector2::new(u.y, u.x);
+        let sample = Vector2::new(u2.y, u2.x);
         // let lum_pdf = 1.0;
 
         let (sample, lum_pdf) = self.data.luminance.sample(sample, &params);

@@ -25,10 +25,10 @@ impl LightT for Environment {
     }
 
     fn l_e(&self, wi: Vector3) -> Spectrum {
-        // let wi = ((Matrix4::from_axis_angle(Vector3::Y, -core::f32::consts::FRAC_PI_3 - 0.2)
-        //     * wi.extend(0.0))
-        // .truncate())
-        // .normalize();
+        let wi = ((Matrix4::from_axis_angle(Vector3::Y, -core::f32::consts::FRAC_PI_3)
+            * wi.extend(0.0))
+        .truncate())
+        .normalize();
         self.radiance.eval_uv(
             Point2::new(
                 -wi.z.atan2(wi.x) / core::f32::consts::TAU,

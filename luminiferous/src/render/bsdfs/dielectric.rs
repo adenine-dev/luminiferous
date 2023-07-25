@@ -4,6 +4,7 @@ use crate::{
     spectra::{Spectrum, SpectrumT},
 };
 
+use super::fresnel;
 use super::{
     util::{reflect, refract},
     BsdfFlags, BsdfSample, BsdfT,
@@ -31,33 +32,39 @@ impl BsdfT for Dielectric {
         Spectrum::zero()
     }
 
-    fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, u: Point2) -> BsdfSample {
+    fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, u1: f32, u2: Point2) -> BsdfSample {
         let cos_theta_i = Frame3::cos_theta(wi);
-        let entering = cos_theta_i >= 0.0;
+        // let entering = cos_theta_i >= 0.0;
 
-        let (eta_i, eta_t, cos_theta_i) = if entering {
-            (self.eta, self.eta.recip(), cos_theta_i)
-        } else {
-            (self.eta.recip(), self.eta, -cos_theta_i)
-        };
+        // let (eta_i, eta_t, cos_theta_i) = if entering {
+        //     (self.eta, self.eta.recip(), cos_theta_i)
+        // } else {
+        //     (self.eta.recip(), self.eta, -cos_theta_i)
+        // };
 
-        let cos_theta_t = (-(-cos_theta_i).mul_add(cos_theta_i, 1.0))
-            .mul_add(eta_t * eta_t, 1.0)
-            .max(0.0)
-            .sqrt();
+        // let cos_theta_t = (-(-cos_theta_i).mul_add(cos_theta_i, 1.0))
+        //     .mul_add(eta_t * eta_t, 1.0)
+        //     .max(0.0)
+        //     .sqrt();
 
-        let a_parallel =
-            (-eta_i).mul_add(cos_theta_t, cos_theta_i) / eta_i.mul_add(cos_theta_t, cos_theta_i);
+        // let a_parallel =
+        //     (-eta_i).mul_add(cos_theta_t, cos_theta_i) / eta_i.mul_add(cos_theta_t, cos_theta_i);
 
-        let a_perpendicular =
-            (-eta_i).mul_add(cos_theta_i, cos_theta_t) / eta_i.mul_add(cos_theta_i, cos_theta_t);
+        // let a_perpendicular =
+        //     (-eta_i).mul_add(cos_theta_i, cos_theta_t) / eta_i.mul_add(cos_theta_i, cos_theta_t);
 
-        let r_i = (a_perpendicular * a_perpendicular + a_parallel * a_parallel) / 2.0;
+        // let r_i = (a_perpendicular * a_perpendicular + a_parallel * a_parallel) / 2.0;
 
-        let wo = if u.x <= r_i {
+        let (r_i, cos_theta_t, _eta_i, eta_t) = fresnel(cos_theta_i, self.eta);
+
+        let wo = if u1 <= r_i {
             reflect(wi)
         } else {
-            refract(wi, cos_theta_t * if entering { -1.0 } else { 1.0 }, eta_t)
+            refract(
+                wi,
+                cos_theta_t * if cos_theta_i >= 0.0 { -1.0 } else { 1.0 },
+                eta_t,
+            )
         };
 
         BsdfSample {

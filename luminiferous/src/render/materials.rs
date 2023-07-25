@@ -32,7 +32,13 @@ pub(crate) fn make_frame(interaction: &SurfaceInteraction) -> Frame3 {
 
 #[enum_dispatch]
 pub trait MaterialT {
-    fn sample(&self, wo_world: Vector3, interaction: &SurfaceInteraction, u: Point2) -> BsdfSample;
+    fn sample(
+        &self,
+        wo_world: Vector3,
+        interaction: &SurfaceInteraction,
+        u1: f32,
+        u2: Point2,
+    ) -> BsdfSample;
 
     fn eval(&self, si: &SurfaceInteraction, wi_world: Vector3, wo_world: Vector3) -> Spectrum;
 

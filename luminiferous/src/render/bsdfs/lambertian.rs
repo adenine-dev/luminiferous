@@ -22,8 +22,14 @@ impl Lambertian {
 }
 
 impl BsdfT for Lambertian {
-    fn sample(&self, _wi: Vector3, interaction: &SurfaceInteraction, u: Point2) -> BsdfSample {
-        let wo = warp::square_to_cosine_hemisphere(u);
+    fn sample(
+        &self,
+        _wi: Vector3,
+        interaction: &SurfaceInteraction,
+        _u1: f32,
+        u2: Point2,
+    ) -> BsdfSample {
+        let wo = warp::square_to_cosine_hemisphere(u2);
 
         BsdfSample {
             wo,

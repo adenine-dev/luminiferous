@@ -10,8 +10,9 @@ use std::{collections::HashMap, fs, path::Path};
 
 use crate::prelude::*;
 
+use crate::shapes::Triangle;
 use crate::{
-    bsdfs::{Bsdf, Dielectric, Lambertian},
+    bsdfs::{ior, Bsdf, ConductorBsdf, Dielectric, Lambertian, NullBsdf, PlasticBsdf},
     cameras::{Camera, PerspectiveCamera},
     film::Film,
     lights::{DistantLight, Environment, Light, PointLight},
@@ -85,12 +86,98 @@ impl ParameterValue {
 
         panic!("oof");
     }
+
+    #[inline]
+    pub fn unwrap_string_or(&self, default: String) -> String {
+        if let ParameterValue::String(s) = self {
+            s.clone()
+        } else {
+            default
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum UntypedTexture {
+    Spectral(SpectralTexture),
+    // Float(Texture<f32>),
+}
+
+fn load_ply_to_shape_vec(path: &Path) -> Vec<Shape> {
+    let p = ply_rs::parser::Parser::<ply_rs::ply::DefaultElement>::new();
+    let mut f = std::fs::File::open(path).unwrap();
+
+    let ply = p.read_ply(&mut f).unwrap();
+    let vertices = ply.payload["vertex"]
+        .iter()
+        .map(|v| {
+            use ply_rs::ply::Property;
+            let Property::Float(x) = v["x"] else {panic!("no x found")};
+            let Property::Float(y) = v["y"] else {panic!("no z found")};
+            let Property::Float(z) = v["z"] else {panic!("no y found")};
+            let Property::Float(nx) = *v.get("nx").unwrap_or(&Property::Float(0.0)) else {panic!("no nx found")};
+            let Property::Float(ny) = *v.get("ny").unwrap_or(&Property::Float(0.0)) else {panic!("no ny found")};
+            let Property::Float(nz) = *v.get("nz").unwrap_or(&Property::Float(0.0)) else {panic!("no nz found")};
+
+            let Property::Float(s) = *v.get("s").unwrap_or_else(|| v.get("u").expect("no s found")) else {panic!("no s found")};
+            let Property::Float(t) = *v.get("t").unwrap_or_else(|| v.get("v").expect("no t found")) else {panic!("no t found")};
+
+            (
+                Point3::new(x, y, z),
+                Normal3::new(nx, ny, nz),
+                Point2::new(s, t),
+            )
+        })
+        .collect::<Vec<_>>();
+    ply.payload["face"]
+        .iter()
+        .flat_map(|face| {
+            let idxs = &face["vertex_indices"];
+            match idxs {
+                ply_rs::ply::Property::ListUInt(list) => {
+                    if list.len() == 3 {
+                        return vec![[list[0] as usize, list[1] as usize, list[2] as usize]];
+                    }
+
+                    vec![
+                        [list[0] as usize, list[1] as usize, list[2] as usize],
+                        [list[0] as usize, list[2] as usize, list[3] as usize],
+                    ]
+                }
+                ply_rs::ply::Property::ListInt(list) => {
+                    if list.len() == 3 {
+                        return vec![[list[0] as usize, list[1] as usize, list[2] as usize]];
+                    }
+
+                    vec![
+                        [list[0] as usize, list[1] as usize, list[2] as usize],
+                        [list[0] as usize, list[2] as usize, list[3] as usize],
+                    ]
+                }
+                _ => panic!("oof"),
+            }
+        })
+        .map(|face| {
+            let v1 = vertices[face[0]];
+            let v2 = vertices[face[1]];
+            let v3 = vertices[face[2]];
+
+            let mut n = [v1.1, v2.1, v3.1];
+            if n[0] == Normal3::ZERO && n[1] == Normal3::ZERO && n[2] == Normal3::ZERO {
+                n = [(v2.0 - v1.0).cross(v3.0 - v1.0); 3];
+            }
+            n = n.map(|n| n.normalize());
+            Shape::Triangle(Triangle::new([v1.0, v2.0, v3.0], n, [v1.2, v2.2, v3.2]))
+        })
+        .collect()
 }
 
 struct GraphicsState {
     pub transform: Transform3,
     pub material: Material,
     pub named_materials: HashMap<String, Material>,
+    pub named_textures: HashMap<String, UntypedTexture>,
+    pub area_light: Option<Spectrum>,
 }
 
 impl Loader for PbrtLoader {
@@ -103,6 +190,13 @@ impl Loader for PbrtLoader {
                 SpectralTexture::Constant(ConstantTexture::new(Spectrum::from_rgb(0.8, 0.8, 0.8))),
             )))),
             named_materials: HashMap::new(),
+            named_textures: HashMap::from([(
+                "__default_spectral_texture".to_owned(),
+                UntypedTexture::Spectral(SpectralTexture::Constant(ConstantTexture::new(
+                    Spectrum::from_rgb(0.1, 0.5, 0.1),
+                ))),
+            )]),
+            area_light: None,
         };
 
         let path_prefix = path.parent().unwrap();
@@ -183,7 +277,6 @@ impl Loader for PbrtLoader {
                                 ParameterValue::Integer(vec![value.parse().unwrap()])
                             }
                         }
-
                         "float" => {
                             if value.starts_with('[') && value.ends_with(']') {
                                 ParameterValue::Float(
@@ -197,6 +290,7 @@ impl Loader for PbrtLoader {
                             }
                         }
                         "point2" | "vector2" => {
+                            dbg!(value);
                             if value.starts_with('[') && value.ends_with(']') {
                                 ParameterValue::Float2(
                                     value[1..value.len() - 1]
@@ -209,7 +303,7 @@ impl Loader for PbrtLoader {
                                 panic!("bad parameter at {l}");
                             }
                         }
-                        "point3" | "vector3" | "normal3" => {
+                        "point3" | "vector3" | "normal3" | "normal" => {
                             if value.starts_with('[') && value.ends_with(']') {
                                 ParameterValue::Float3(
                                     value[1..value.len() - 1]
@@ -240,13 +334,18 @@ impl Loader for PbrtLoader {
                                 panic!("bad parameter at {l}");
                             }
                         }
-                        "bool" => ParameterValue::Bool(value.parse().unwrap()),
-                        "string" => ParameterValue::String(value[1..value.len() - 1].to_owned()),
+                        "bool" => {
+                            let x: &[_] = &['[', ']', ' '];
+                            ParameterValue::Bool(value.trim_matches(x).parse().unwrap())
+                        }
+                        "string" | "texture" => {
+                            ParameterValue::String(value[1..value.len() - 1].to_owned())
+                        }
                         "blackbody" | "spectrum" => {
-                            warnln!("unsupported type {typ} at line {l}");
+                            warnln!("unsupported type `{typ}` at line {l}");
                             ParameterValue::None
                         }
-                        _ => panic!("invalid type {typ} at line {l}"),
+                        _ => panic!("invalid type `{typ}` at line {l}"),
                     };
                     hm.insert(key, value);
                 }
@@ -257,11 +356,80 @@ impl Loader for PbrtLoader {
         macro_rules! parse_material {
             ($l:ident, $kind:expr, $params:ident) => {{
                 match $kind {
-                    "\"diffuse\"" => Some(Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
-                        Lambertian::new(SpectralTexture::Constant(ConstantTexture::new(
-                            Spectrum::from_rgb(0.5, 0.5, 0.5),
-                        ))),
-                    )))),
+                    "\"diffuse\"" => {
+                        let reflectance =
+                            $params.get("reflectance").unwrap_or(&ParameterValue::None);
+
+                        let texture = if matches!(
+                            reflectance,
+                            ParameterValue::Spectrum(_) | ParameterValue::Rgb(_)
+                        ) {
+                            UntypedTexture::Spectral(SpectralTexture::Constant(
+                                ConstantTexture::new(reflectance.unwrap_spectrum()),
+                            ))
+                        } else {
+                            let texture_name = reflectance.unwrap_string();
+                            // .unwrap_string_or("__default_spectral_texture".to_owned());
+                            let texture_name = texture_name.trim().trim_matches('"');
+                            state.named_textures.get(texture_name).unwrap().clone()
+                        };
+                        match texture {
+                            UntypedTexture::Spectral(texture) => {
+                                Some(Material::Direct(DirectMaterial::new(Bsdf::Lambertian(
+                                    Lambertian::new(texture.clone()),
+                                ))))
+                            }
+                            _ => panic!("expected spectral texture found other at line {}", $l),
+                        }
+                    }
+                    "\"coateddiffuse\"" => {
+                        let reflectance =
+                            $params.get("reflectance").unwrap_or(&ParameterValue::None);
+
+                        let texture = if matches!(
+                            reflectance,
+                            ParameterValue::Spectrum(_) | ParameterValue::Rgb(_)
+                        ) {
+                            UntypedTexture::Spectral(SpectralTexture::Constant(
+                                ConstantTexture::new(reflectance.unwrap_spectrum()),
+                            ))
+                        } else {
+                            let texture_name = reflectance
+                                .unwrap_string_or("__default_spectral_texture".to_owned());
+                            let texture_name = texture_name.trim().trim_matches('"');
+                            state.named_textures.get(texture_name).unwrap().clone()
+                        };
+                        match texture {
+                            UntypedTexture::Spectral(texture) => Some(Material::Direct(
+                                DirectMaterial::new(Bsdf::Plastic(PlasticBsdf::new(
+                                    texture.clone(),
+                                    ior::AIR,
+                                    ior::WATER_ICE,
+                                    $params
+                                        .get("vroughness")
+                                        .unwrap_or(&ParameterValue::None)
+                                        .unwrap_float_or(0.1),
+                                ))),
+                            )),
+                            _ => panic!("expected spectral texture found other at line {}", $l),
+                        }
+                    }
+                    "\"conductor\"" => Some(Material::Direct(DirectMaterial::new(
+                        Bsdf::Conductor(ConductorBsdf::new(
+                            SpectralTexture::Constant(ConstantTexture::new(
+                                $params
+                                    .get("k")
+                                    .unwrap_or(&ParameterValue::None)
+                                    .unwrap_spectrum(),
+                            )),
+                            SpectralTexture::Constant(ConstantTexture::new(
+                                $params
+                                    .get("eta")
+                                    .unwrap_or(&ParameterValue::None)
+                                    .unwrap_spectrum(),
+                            )),
+                        )),
+                    ))),
                     "\"dielectric\"" => Some(Material::Direct(DirectMaterial::new(
                         Bsdf::Dielectric(Dielectric::new(
                             1.0,
@@ -272,6 +440,9 @@ impl Loader for PbrtLoader {
                             Spectrum::splat(1.0),
                         )),
                     ))),
+                    "\"null\"" => Some(Material::Direct(DirectMaterial::new(Bsdf::Null(
+                        NullBsdf::new(),
+                    )))),
                     _ => {
                         warnln!("unsupported material kind {} at line {}", $kind, $l);
                         None
@@ -440,22 +611,24 @@ impl Loader for PbrtLoader {
                             } else {
                                 Path::new(filename).to_path_buf()
                             };
+                            // dbg!(&filename);
+                            // let imp_scene = russimp::scene::Scene::from_file(
+                            //     filename.as_path().to_str().unwrap(),
+                            //     vec![
+                            //         russimp::scene::PostProcess::Triangulate,
+                            //         russimp::scene::PostProcess::JoinIdenticalVertices,
+                            //         russimp::scene::PostProcess::SortByPrimitiveType,
+                            //         russimp::scene::PostProcess::PreTransformVertices,
+                            //     ],
+                            // )
+                            // .unwrap();
+                            // let shapes = imp_scene
+                            //     .meshes
+                            //     .iter()
+                            //     .flat_map(shapes_from_russimp_mesh)
+                            //     .collect::<Vec<_>>();
 
-                            let imp_scene = russimp::scene::Scene::from_file(
-                                filename.as_path().to_str().unwrap(),
-                                vec![
-                                    russimp::scene::PostProcess::Triangulate,
-                                    russimp::scene::PostProcess::JoinIdenticalVertices,
-                                    russimp::scene::PostProcess::SortByPrimitiveType,
-                                    russimp::scene::PostProcess::PreTransformVertices,
-                                ],
-                            )
-                            .unwrap();
-                            let shapes = imp_scene
-                                .meshes
-                                .iter()
-                                .flat_map(shapes_from_russimp_mesh)
-                                .collect::<Vec<_>>();
+                            let shapes = load_ply_to_shape_vec(filename.as_path());
 
                             sb.primitives(
                                 shapes,
@@ -502,8 +675,40 @@ impl Loader for PbrtLoader {
                         state.material = mat.clone();
                     } else {
                         errorln!("getting unknown named material '{name}'");
-                        dbg!(&state.named_materials);
                     }
+                }
+
+                "Texture" => {
+                    let name = next!().trim_matches('"');
+                    let typ = next!().trim_matches('"');
+                    let class = next!().trim_matches('"');
+                    let params = parse_params!();
+                    assert!(
+                        class == "imagemap",
+                        "imagemap is the only texture class supported currently. line {l}"
+                    );
+                    let texture = match typ {
+                        "spectrum" => {
+                            let filename = params.get("filename").unwrap().unwrap_string();
+                            let filename = filename.trim().trim_matches('"');
+                            let filename = if !Path::new(filename).is_absolute() {
+                                path_prefix.join(filename)
+                            } else {
+                                Path::new(filename).to_path_buf()
+                            };
+                            UntypedTexture::Spectral(SpectralTexture::Image(
+                                ImageTexture::from_path(Path::new(&filename)),
+                            ))
+                        }
+                        // TODO: floats
+                        _ => {
+                            panic!("unsupported image type {typ} at line {l}");
+                        }
+                    };
+
+                    state.named_textures.insert(name.to_owned(), texture);
+                    // dbg!(name, typ, class, params);
+                    // panic!();
                 }
                 "WorldBegin" => {
                     //TODO: rest of the stuff that should happen here..

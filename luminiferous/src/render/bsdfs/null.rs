@@ -26,7 +26,7 @@ impl BsdfT for NullBsdf {
         BsdfFlags::Null
     }
 
-    fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, _u: Point2) -> BsdfSample {
+    fn sample(&self, wi: Vector3, _si: &SurfaceInteraction, _u1: f32, _u2: Point2) -> BsdfSample {
         BsdfSample {
             wo: -wi,
             sampled: self.flags(),

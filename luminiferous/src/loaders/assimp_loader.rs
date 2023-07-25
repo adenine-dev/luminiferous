@@ -61,9 +61,12 @@ pub(crate) fn shapes_from_russimp_mesh(mesh: &Mesh) -> Vec<Shape> {
 
     mesh.faces
         .iter()
-        .map(|face| {
+        .filter_map(|face| {
             let indices = &face.0;
-            assert!(face.0.len() == 3);
+            if face.0.is_empty() {
+                return None;
+            }
+            assert_eq!(face.0.len(), 3);
 
             let vertices = [
                 mesh.vertices[indices[0] as usize],
@@ -99,7 +102,7 @@ pub(crate) fn shapes_from_russimp_mesh(mesh: &Mesh) -> Vec<Shape> {
 
             let normals = normals.map(|n| Normal3::new(n.x, n.y, n.z).normalize());
 
-            Shape::Triangle(Triangle::new(
+            Some(Shape::Triangle(Triangle::new(
                 vertices,
                 normals,
                 if mesh.texture_coords.is_empty() {
@@ -117,7 +120,7 @@ pub(crate) fn shapes_from_russimp_mesh(mesh: &Mesh) -> Vec<Shape> {
                         .unwrap_or(default_uvs[i])
                     })
                 },
-            ))
+            )))
         })
         .collect()
 }
@@ -134,8 +137,6 @@ impl Loader for AssimpLoader {
             ],
         )
         .unwrap();
-
-        // dbg!(&imp_scene);
 
         if !imp_scene.cameras.is_empty() {
             let cam = &imp_scene.cameras[0];

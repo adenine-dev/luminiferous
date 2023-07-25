@@ -22,31 +22,27 @@ impl<T: Copy> ImageTexture<T> {
 
 impl ImageTexture<Spectrum> {
     pub fn from_path(path: &Path) -> Self {
-        let image = exr::prelude::read_first_rgba_layer_from_file(
-            path,
-            |resolution, _| {
-                let default_pixel = [0.0, 0.0, 0.0, 0.0];
-                let empty_line = vec![default_pixel; resolution.width()];
-                let empty_image = vec![empty_line; resolution.height()];
-                empty_image
-            },
-            |pixel_vector, position, (r, g, b, a): (f32, f32, f32, f32)| {
-                pixel_vector[position.y()][position.x()] = [r, g, b, a]
-            },
-        )
-        .unwrap();
-        let extent = UExtent2::new(
-            image.layer_data.size.0 as u32,
-            image.layer_data.size.1 as u32,
-        );
+        let image = image::open(path).unwrap();
 
+        let extent = UExtent2::new(image.width(), image.height());
+
+        let inverse_gamma = |x: f32| -> f32 {
+            if x <= 0.04045 {
+                x * 1.0 / 12.92
+            } else {
+                ((x + 0.0550) / 1.055).powf(2.4)
+            }
+        };
         let pixels = image
-            .layer_data
-            .channel_data
-            .pixels
-            .iter()
-            .flatten()
-            .map(|p| Spectrum::from_rgb(p[0], p[1], p[2]))
+            .to_rgb32f()
+            .chunks(3)
+            .map(|p| {
+                Spectrum::from_rgb(
+                    inverse_gamma(p[0]),
+                    inverse_gamma(p[1]),
+                    inverse_gamma(p[2]),
+                )
+            })
             .collect::<Vec<_>>();
 
         STATS.textures_created.inc();
@@ -69,6 +65,8 @@ impl<T: Copy> TextureT<T> for ImageTexture<T> {
     }
 
     fn eval_uv(&self, uv: Point2) -> T {
+        let uv = (uv % Point2::ONE + Point2::ONE) % Point2::ONE;
+
         //TODO: better filtering
         let x = (uv) * (self.pixels.get_extent() - UVector2::splat(1)).as_vec2();
 

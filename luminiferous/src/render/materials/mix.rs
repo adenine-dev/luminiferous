@@ -24,7 +24,13 @@ impl MixMaterial {
 }
 
 impl MaterialT for MixMaterial {
-    fn sample(&self, wi_world: Vector3, si: &SurfaceInteraction, u: Point2) -> BsdfSample {
+    fn sample(
+        &self,
+        wi_world: Vector3,
+        si: &SurfaceInteraction,
+        u1: f32,
+        u2: Point2,
+    ) -> BsdfSample {
         let frame = make_frame(si);
 
         let wi = frame.to_local(wi_world);
@@ -32,12 +38,12 @@ impl MaterialT for MixMaterial {
         let t = self.mask.eval(si).clamp(0.0, 1.0);
 
         let mut sample = if t == 0.0 {
-            self.a.sample(wi, si, u)
+            self.a.sample(wi, si, u1, u2)
         } else if t == 1.0 {
-            self.b.sample(wi, si, u)
+            self.b.sample(wi, si, u1, u2)
         } else {
-            let a = self.a.sample(wi, si, u);
-            let b = self.b.sample(wi, si, u);
+            let a = self.a.sample(wi, si, u1, u2);
+            let b = self.b.sample(wi, si, u1, u2);
             BsdfSample {
                 wo: (a.wo * (1.0 - t) + b.wo * t).normalize(),
                 sampled: a.sampled | b.sampled,

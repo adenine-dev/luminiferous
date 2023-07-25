@@ -4,6 +4,7 @@
 
 - [Flamehorn Wyrmling](https://www.myminifactory.com/object/3d-print-free-flamehorn-wyrmling-presupported-dragons-of-the-lodge-272817) (BY-NC-SA) (geometry reduced)
 - material_test/backdrop (CC0)
+- [material_test/mori_knob.obj](https://casual-effects.com/data/index.html) (CC BY 4.0) (See directroy for full license)
 - [Stanford Bunny](http://graphics.stanford.edu/data/3Dscanrep/)
 
 ## Textures
@@ -14,10 +15,11 @@
 
 ## Brdfs
 
-- [All assets in ./bsdfs](https://rgl.epfl.ch/materials) (CC0)
+- [All assets in ./brdfs](https://rgl.epfl.ch/materials) (CC0)
 
 ## Scenes
 
 - [scenes/dragon](https://benedikt-bitterli.me/resources/) (CC BY 3.0) (Modified) (See directory for full license)
 - scenes/vintage_oil_lamp/
   - [chimeny.obj, font.obj](https://polyhaven.com/a/vintage_oil_lamp) (CC0)
+- [scenes/staircase](https://benedikt-bitterli.me/resources/) (CC BY 3.0) (Modified) (See directory for full license)

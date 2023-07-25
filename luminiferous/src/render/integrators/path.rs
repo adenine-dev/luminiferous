@@ -149,7 +149,7 @@ impl IntegratorT for PathIntegrator {
                             let mut depth = 1;
                             let mut _num_tests = 0;
 
-                            while depth < self.max_depth {
+                            'outer: while depth < self.max_depth {
                                 let (interaction, n) = scene.intersect(ray);
                                 _num_tests += n;
 
@@ -184,6 +184,10 @@ impl IntegratorT for PathIntegrator {
                                         ray = mi.as_interaction().spawn_ray(sample.wo);
                                     }
                                 } else if let Some(si) = interaction {
+                                    // let n = si.n;
+                                    // contributed = Spectrum::from_rgb(n.x, n.y, n.z);
+                                    // break 'outer;
+
                                     if let Some(area_light_index) = si.primitive.area_light_index {
                                         let l = scene.lights[area_light_index].l_e(-ray.d);
 
@@ -193,15 +197,13 @@ impl IntegratorT for PathIntegrator {
 
                                     let material = &scene.materials[si.primitive.material_index];
                                     let sample =
-                                        material.sample(-ray.d, &si, pixel_sampler.next_2d());
+                                        material.sample(-ray.d, &si, pixel_sampler.next_1d(), pixel_sampler.next_2d());
 
                                     let l = sample.spectrum;
                                     if l.has_nan() {
                                         break;
                                     }
-                                    if sample.sampled.contains(BsdfFlags::Smooth)
-                                        && !sample.sampled.contains(BsdfFlags::Delta)
-                                    {
+                                    if sample.sampled.contains(BsdfFlags::Smooth) {
                                         for light in scene.lights.iter() {
                                             contributed += surface_reflectance
                                                 * self.sample_light_from_surface(

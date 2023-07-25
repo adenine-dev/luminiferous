@@ -40,6 +40,8 @@ pub trait SpectrumT:
     fn y(&self) -> f32;
 
     fn exp(&self) -> Self;
+
+    fn sqrt(&self) -> Self;
 }
 
 pub type Spectrum = RgbSpectrum;

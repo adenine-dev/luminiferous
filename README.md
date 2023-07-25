@@ -25,3 +25,8 @@ This is a hobby ray tracer. Very much a work in progress right now. Commits are 
 
 <p align="middle">Misty Dragon, 2048 samples</p>
 <p align="middle">This uses the volumetric rendering capabilities and a spotlight to render a model dragon in a scene wide mist.</p>
+
+![Staircase](./renders/staircase.png)
+
+<p align="middle">Misty Dragon, 1024 samples</p>
+<p align="middle">A render of a realistic complex scene with many materials and geometry. It is sourced from <a href="https://benedikt-bitterli.me/resources/">here.</a></p>

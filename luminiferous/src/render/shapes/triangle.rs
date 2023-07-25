@@ -91,7 +91,7 @@ impl ShapeT for Triangle {
             intersection,
             p: ray.at(intersection.t),
             uv: b0 * self.uv[0] + b1 * self.uv[1] + b2 * self.uv[2],
-            n: b0 * self.n[0] + b1 * self.n[1] + b2 * self.n[2],
+            n: face_forward(b0 * self.n[0] + b1 * self.n[1] + b2 * self.n[2], -ray.d),
 
             dp_du,
             dp_dv,
