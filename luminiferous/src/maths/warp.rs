@@ -38,3 +38,9 @@ pub fn square_to_uniform_sphere(u: Point2) -> Vector3 {
 
     Vector3::new(r * c, r * s, z)
 }
+
+/// Returns (b0, b1), b2 = 1.0 - b0 - b1.
+pub fn square_to_barycentric(u: Point2) -> (f32, f32) {
+    let su0 = u.x.sqrt();
+    (1.0 - su0, u.y * su0)
+}

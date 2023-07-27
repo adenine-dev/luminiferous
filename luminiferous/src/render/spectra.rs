@@ -51,3 +51,5 @@ pub type Spectrum = RgbSpectrum;
 // pub enum Spectrum {
 //     Rgb(RgbSpectrum),
 // }
+
+

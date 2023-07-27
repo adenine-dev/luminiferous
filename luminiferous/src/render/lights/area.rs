@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::primitive::Interaction;
+use crate::spectra::SpectrumT;
 use crate::{primitive::Primitive, spectra::Spectrum};
 
 use super::{LightSample, LightT, Visibility};
@@ -19,6 +20,19 @@ impl AreaLight {
             primitive,
             radiance,
         }
+    }
+
+    pub fn multi_new(primitives: Vec<Primitive>, radiance: Spectrum) -> Vec<Self> {
+        STATS.lights_created.add(primitives.len() as u64);
+
+        primitives
+            .into_iter()
+            .map(|p| Self {
+                area: p.area(),
+                primitive: p,
+                radiance,
+            })
+            .collect()
     }
 }
 

@@ -112,10 +112,18 @@ impl ShapeT for Triangle {
     }
 
     fn area(&self) -> f32 {
-        unimplemented!()
+        0.5 * (self.v[1] - self.v[0])
+            .cross(self.v[2] - self.v[0])
+            .length()
     }
 
-    fn sample(&self, _u: Point2) -> ShapeSample {
-        unimplemented!()
+    fn sample(&self, u: Point2) -> ShapeSample {
+        let (b0, b1) = warp::square_to_barycentric(u);
+        let b2 = 1.0 - b0 - b1;
+
+        ShapeSample {
+            p: b0 * self.v[0] + b1 * self.v[1] + b2 * self.v[2],
+            n: b0 * self.n[0] + b1 * self.n[1] + b2 * self.n[2],
+        }
     }
 }

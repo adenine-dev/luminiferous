@@ -50,7 +50,7 @@ impl PathIntegrator {
         if !scene.unoccluded(emitted.visibility) {
             return Spectrum::zero();
         }
-        let f = scene.materials[si.primitive.material_index].eval(&si, emitted.wo, ray.d);
+        let f = scene.materials[si.primitive.material_index].eval(si, emitted.wo, ray.d);
 
         f * emitted.li * emitted.wo.dot(si.n).abs()
     }
@@ -192,7 +192,7 @@ impl IntegratorT for PathIntegrator {
                                         let l = scene.lights[area_light_index].l_e(-ray.d);
 
                                         contributed += surface_reflectance * l;
-                                        break;
+                                        break 'outer;
                                     }
 
                                     let material = &scene.materials[si.primitive.material_index];
@@ -203,7 +203,7 @@ impl IntegratorT for PathIntegrator {
                                     if l.has_nan() {
                                         break;
                                     }
-                                    if sample.sampled.contains(BsdfFlags::Smooth) {
+                                    if sample.sampled.contains(BsdfFlags::Smooth){
                                         for light in scene.lights.iter() {
                                             contributed += surface_reflectance
                                                 * self.sample_light_from_surface(

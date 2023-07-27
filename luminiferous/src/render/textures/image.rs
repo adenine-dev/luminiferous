@@ -33,14 +33,34 @@ impl ImageTexture<Spectrum> {
                 ((x + 0.0550) / 1.055).powf(2.4)
             }
         };
+
+        // mild hack
+        // FIXME: have this be a param
+        let undo_gamma_correct = !matches!(
+            image,
+            image::DynamicImage::ImageRgb32F(_) | image::DynamicImage::ImageRgba32F(_)
+        );
+
         let pixels = image
             .to_rgb32f()
             .chunks(3)
             .map(|p| {
                 Spectrum::from_rgb(
-                    inverse_gamma(p[0]),
-                    inverse_gamma(p[1]),
-                    inverse_gamma(p[2]),
+                    if undo_gamma_correct {
+                        inverse_gamma(p[0])
+                    } else {
+                        p[0]
+                    },
+                    if undo_gamma_correct {
+                        inverse_gamma(p[1])
+                    } else {
+                        p[1]
+                    },
+                    if undo_gamma_correct {
+                        inverse_gamma(p[2])
+                    } else {
+                        p[2]
+                    },
                 )
             })
             .collect::<Vec<_>>();

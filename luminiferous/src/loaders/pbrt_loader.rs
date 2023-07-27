@@ -8,8 +8,10 @@
 use core::panic;
 use std::{collections::HashMap, fs, path::Path};
 
+use crate::lights::AreaLight;
 use crate::prelude::*;
 
+use crate::primitive::Primitive;
 use crate::shapes::Triangle;
 use crate::{
     bsdfs::{ior, Bsdf, ConductorBsdf, Dielectric, Lambertian, NullBsdf, PlasticBsdf},
@@ -69,6 +71,24 @@ impl ParameterValue {
     }
 
     #[inline]
+    pub fn unwrap_point2s_or(&self, default: Point2) -> Vec<Point2> {
+        if let ParameterValue::Float2(p) = self {
+            return p.iter().map(|p| Point2::new(p[0], p[1])).collect();
+        }
+
+        vec![default]
+    }
+
+    #[inline]
+    pub fn unwrap_point3s_or(&self, default: Point3) -> Vec<Point3> {
+        if let ParameterValue::Float3(p) = self {
+            return p.iter().map(|p| Point3::new(p[0], p[1], p[2])).collect();
+        }
+
+        vec![default]
+    }
+
+    #[inline]
     pub fn unwrap_spectrum(&self) -> Spectrum {
         match self {
             ParameterValue::Rgb(s) => *s,
@@ -94,6 +114,15 @@ impl ParameterValue {
         } else {
             default
         }
+    }
+
+    #[inline]
+    pub fn unwrap_ints(&self) -> &Vec<i32> {
+        if let ParameterValue::Integer(f) = self {
+            return f;
+        }
+
+        panic!("oof")
     }
 }
 
@@ -201,20 +230,19 @@ impl Loader for PbrtLoader {
 
         let path_prefix = path.parent().unwrap();
 
-        let tokens = string
+        let clean_text = string
             .lines()
-            .filter_map(|line| {
-                if line.is_empty() {
-                    return None;
-                }
-                line.split('#').next().map(|s| s.trim())
-            })
-            .enumerate()
-            .flat_map(|(l, line)| {
-                let mut prev_c = '\0';
-                let mut in_qoute = false;
-                let mut in_bracket = false;
-                line.split(move |c| {
+            .filter_map(|line| line.split('#').next())
+            .fold(String::new(), |a, b| a + b + "\n");
+
+        let tokens = {
+            let mut prev_c = '\0';
+            let mut in_qoute = false;
+            let mut in_bracket = false;
+            let mut line = 1;
+
+            clean_text
+                .split(|c| {
                     if c == '"' && prev_c != '\\' {
                         in_qoute = !in_qoute
                     }
@@ -227,10 +255,14 @@ impl Loader for PbrtLoader {
                     prev_c = c;
                     !in_qoute && !in_bracket && c.is_whitespace()
                 })
-                .map(move |s| (l, s))
-            })
-            .filter(|s| !s.1.is_empty())
-            .collect::<Vec<_>>();
+                .filter_map(|s| {
+                    if s.is_empty() {
+                        return None;
+                    }
+                    Some((0, s))
+                })
+                .collect::<Vec<_>>()
+        };
 
         let mut token_iter = tokens.into_iter().peekable();
 
@@ -290,7 +322,6 @@ impl Loader for PbrtLoader {
                             }
                         }
                         "point2" | "vector2" => {
-                            dbg!(value);
                             if value.starts_with('[') && value.ends_with(']') {
                                 ParameterValue::Float2(
                                     value[1..value.len() - 1]
@@ -585,22 +616,23 @@ impl Loader for PbrtLoader {
                         _ => warnln!(" unsupported light source kind {kind} at line {l}"),
                     }
                 }
+                "AreaLightSource" => {
+                    let _type = next!();
+                    let params = parse_params!();
+                    state.area_light = Some(params.get("L").unwrap().unwrap_spectrum());
+                }
                 "Shape" => {
                     let kind = next!();
                     let params = parse_params!();
-                    match kind {
+                    let shapes = match kind {
                         "\"sphere\"" => {
-                            sb.primitive(
-                                Shape::Sphere(Sphere::new(
-                                    params
-                                        .get("radius")
-                                        .unwrap_or(&ParameterValue::None)
-                                        .unwrap_float_or(1.0),
-                                )),
-                                state.material.clone(),
-                                Some(state.transform),
-                                MediumInterface::none(),
-                            );
+                            //
+                            vec![Shape::Sphere(Sphere::new(
+                                params
+                                    .get("radius")
+                                    .unwrap_or(&ParameterValue::None)
+                                    .unwrap_float_or(1.0),
+                            ))]
                         }
                         "\"plymesh\"" => {
                             let filename = params["filename"].unwrap_string();
@@ -611,33 +643,69 @@ impl Loader for PbrtLoader {
                             } else {
                                 Path::new(filename).to_path_buf()
                             };
-                            // dbg!(&filename);
-                            // let imp_scene = russimp::scene::Scene::from_file(
-                            //     filename.as_path().to_str().unwrap(),
-                            //     vec![
-                            //         russimp::scene::PostProcess::Triangulate,
-                            //         russimp::scene::PostProcess::JoinIdenticalVertices,
-                            //         russimp::scene::PostProcess::SortByPrimitiveType,
-                            //         russimp::scene::PostProcess::PreTransformVertices,
-                            //     ],
-                            // )
-                            // .unwrap();
-                            // let shapes = imp_scene
-                            //     .meshes
-                            //     .iter()
-                            //     .flat_map(shapes_from_russimp_mesh)
-                            //     .collect::<Vec<_>>();
 
-                            let shapes = load_ply_to_shape_vec(filename.as_path());
-
-                            sb.primitives(
-                                shapes,
-                                state.material.clone(),
-                                Some(state.transform),
-                                MediumInterface::none(),
-                            );
+                            load_ply_to_shape_vec(filename.as_path())
                         }
-                        _ => warnln!(" unsupported shape kind {kind} at line {l}"),
+                        "\"trianglemesh\"" => {
+                            let uvs = params
+                                .get("uv")
+                                .unwrap_or(&ParameterValue::None)
+                                .unwrap_point2s_or(Point2::ZERO);
+
+                            let ps = params
+                                .get("P")
+                                .unwrap_or(&ParameterValue::None)
+                                .unwrap_point3s_or(Point3::ZERO);
+
+                            let ns = params
+                                .get("N")
+                                .unwrap_or(&ParameterValue::None)
+                                .unwrap_point3s_or(Point3::ZERO);
+                            let indices = params
+                                .get("indices")
+                                .unwrap_or(&ParameterValue::None)
+                                .unwrap_ints();
+
+                            indices
+                                .chunks(3)
+                                .map(|idxs| {
+                                    let idxs: [i32; 3] = idxs.try_into().unwrap();
+                                    Shape::Triangle(Triangle::new(
+                                        idxs.map(|i| ps[i as usize]),
+                                        idxs.map(|i| ns[i as usize]),
+                                        idxs.map(|i| uvs[i as usize]),
+                                    ))
+                                })
+                                .collect()
+                        }
+                        _ => {
+                            warnln!(" unsupported shape kind {kind} at line {l}");
+                            vec![]
+                        }
+                    };
+                    if let Some(radiance) = state.area_light {
+                        sb.area_lights(AreaLight::multi_new(
+                            shapes
+                                .into_iter()
+                                .map(|s| {
+                                    Primitive::new(
+                                        s,
+                                        0,
+                                        None,
+                                        Some(state.transform),
+                                        MediumInterface::none(),
+                                    )
+                                })
+                                .collect(),
+                            radiance,
+                        ));
+                    } else {
+                        sb.primitives(
+                            shapes,
+                            state.material.clone(),
+                            Some(state.transform),
+                            MediumInterface::none(),
+                        );
                     }
                 }
                 "Material" => {

@@ -121,6 +121,10 @@ impl SceneBuilder {
         world_to_object: Option<Transform3>,
         medium_interface: MediumInterface,
     ) -> &mut Self {
+        if shapes.is_empty() {
+            return self;
+        }
+
         self.materials.push(material);
         self.primitives.extend(shapes.into_iter().map(|s| {
             Primitive::new(
@@ -140,6 +144,17 @@ impl SceneBuilder {
         self.primitives.push(light.primitive.clone());
 
         self.lights.push(Light::Area(light));
+        self
+    }
+
+    pub fn area_lights(&mut self, lights: Vec<AreaLight>) -> &mut Self {
+        let old_len = self.lights.len();
+        self.lights
+            .extend(lights.into_iter().enumerate().map(|(i, mut light)| {
+                light.primitive.area_light_index = Some(old_len + i);
+                self.primitives.push(light.primitive.clone());
+                Light::Area(light)
+            }));
         self
     }
 

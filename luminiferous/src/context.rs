@@ -55,9 +55,10 @@ impl Context {
         // let (width, height) = (2160, 3840);
         // let (width, height) = (1600, 900);
         // let (width, height) = (1280, 720);
-        let (width, height) = (720, 1280);
+        // let (width, height) = (720, 1280);
         // let (width, height) = (800, 450);
         // let (width, height) = (800, 800);
+        let (width, height) = (1024, 1024);
         // let (width, height) = (1200, 1200);
         // let (width, height) = (512, 384);
         // let (width, height) = (320, 180);
@@ -116,7 +117,7 @@ impl Context {
                 sb.primitives(tris, material, world_to_object, medium_interface);
             };
 
-        let scene = match 4 {
+        let scene = match 7 {
             0 => {
                 let mut sb = SceneBuilder::new();
                 sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
@@ -416,26 +417,6 @@ impl Context {
                     },
                 );
 
-                // sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
-                //     Film::new(
-                //         UVector2::new(width, height),
-                //         TentFilter::new(Vector2::splat(1.0)),
-                //     ),
-                //     Transform3::new(
-                //         Matrix4::look_at_rh(
-                //             // Point3::new(-6.0, 6.0, 6.0),
-                //             Point3::new(0.0, 1.7, 4.8),
-                //             Point3::new(0.0, 1.7, -1.0),
-                //             Vector3::Y,
-                //         )
-                //         .inverse(),
-                //     ),
-                //     (59.0f32).to_radians(),
-                //     0.0,
-                //     0.0,
-                //     None,
-                // )));
-
                 sb.area_light(AreaLight::new(
                     Primitive {
                         shape: Shape::Sphere(Sphere::new(0.5)),
@@ -660,6 +641,44 @@ impl Context {
                         "assets/material_test/christmas_photo_studio_07.exr",
                     ))),
                 )));
+
+                sb.build()
+            }
+            // cornel box
+            7 => {
+                let mut sb = SceneBuilder::new();
+
+                sb.load_with::<PbrtLoader>(
+                    Path::new("assets/scenes/cornell-box/scene-v4.pbrt"),
+                    SceneCreationParams {
+                        extent: UExtent2::new(width, height),
+                    },
+                );
+
+                // sb.camera(Camera::Projective(PerspectiveCamera::new_perspective(
+                //     Film::new(
+                //         UVector2::new(width, height),
+                //         TentFilter::new(Vector2::splat(1.0)),
+                //     ),
+                //     Transform3::new(
+                //         Matrix4::look_at_rh(
+                //             Point3::new(0.0, 0.0, 6.8),
+                //             Point3::new(0.0, 0.0, 0.0),
+                //             Vector3::Y,
+                //         )
+                //         .inverse(),
+                //     ),
+                //     core::f32::consts::FRAC_PI_2,
+                //     0.0,
+                //     0.0,
+                //     None,
+                // )));
+
+                // sb.light(Light::Environment(Environment::new(
+                //     SpectralTexture::Image(ImageTexture::from_path(Path::new(
+                //         "assets/material_test/christmas_photo_studio_07.exr",
+                //     ))),
+                // )));
 
                 sb.build()
             }

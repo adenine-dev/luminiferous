@@ -1,5 +1,3 @@
-use russimp::face;
-
 use crate::prelude::*;
 
 use crate::shapes::ShapeSample;
@@ -26,6 +24,7 @@ pub struct Intersection<'a> {
 pub struct Interaction {
     pub p: Point3,
     pub n: Normal3,
+    pub wi: Vector3,
 }
 
 impl Interaction {
@@ -46,6 +45,7 @@ pub struct SurfaceInteraction<'a> {
     pub t: f32,
     pub p: Point3,
     pub n: Normal3,
+    pub wi: Vector3,
     pub uv: Point2,
     pub dp_du: Vector3,
     pub dp_dv: Vector3,
@@ -53,29 +53,6 @@ pub struct SurfaceInteraction<'a> {
 }
 
 impl<'a> SurfaceInteraction<'a> {
-    pub fn new(
-        primitive: &'a Primitive,
-        t: f32,
-        p: Point3,
-        n: Normal3,
-        uv: Point2,
-        dp_du: Vector3,
-        dp_dv: Vector3,
-    ) -> Self {
-        // let shading_frame = Frame3::new(n);
-
-        SurfaceInteraction {
-            primitive,
-            t,
-            p,
-            n,
-            uv,
-            dp_du,
-            dp_dv,
-            // shading_frame,
-        }
-    }
-
     pub fn target_medium(&self, d: Vector3) -> Option<Medium> {
         if self.n.dot(d) > 0.0 {
             self.primitive.medium_interface.outside.clone()
@@ -89,6 +66,7 @@ impl<'a> SurfaceInteraction<'a> {
         Interaction {
             p: self.p,
             n: self.n,
+            wi: self.wi,
         }
     }
 }
@@ -174,6 +152,7 @@ impl<'a> Intersection<'a> {
             t: self.shape_intersection.t,
             p: shape_interaction.p,
             n: shape_interaction.n,
+            wi: -r.d,
             uv: shape_interaction.uv,
             dp_du: shape_interaction.dp_du,
             dp_dv: shape_interaction.dp_dv,

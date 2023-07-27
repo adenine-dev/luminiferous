@@ -21,6 +21,7 @@ impl MediumInteraction<'_> {
         Interaction {
             p: self.p,
             n: self.wi,
+            wi: self.wi,
         }
     }
 }
